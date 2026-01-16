@@ -41,3 +41,7 @@ nul
 
 # Claude
 .claude/
+
+# Build artifacts
+*.zip
+tools/tcc.zip
