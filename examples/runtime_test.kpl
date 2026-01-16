@@ -1,0 +1,25 @@
+// Runtime Library Test
+// ರನ್‌ಟೈಮ್ ಪರೀಕ್ಷೆ
+
+// Basic arithmetic (already working)
+"=== ಅಂಕಗಣಿತ (Arithmetic) ===" ಮುದ್ರಿಸು.
+೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.       // 8
+೧೦ ೪ ಕಳೆ ಮುದ್ರಿಸು.       // 6
+
+// Float comparison (was broken before)
+"=== ದಶಮಾಂಶ ಹೋಲಿಕೆ (Float Comparison) ===" ಮುದ್ರಿಸು.
+3.5 2.5 ಹಿರಿದು ಮುದ್ರಿಸು.   // ಸರಿ (true)
+1.5 2.5 ಕಿರಿದು ಮುದ್ರಿಸು.   // ಸರಿ (true)
+
+// String length (new!)
+"=== ಪಠ್ಯ ಉದ್ದ (String Length) ===" ಮುದ್ರಿಸು.
+"ನಮಸ್ಕಾರ" ಉದ್ದ ಮುದ್ರಿಸು.   // 7 (UTF-8 aware)
+"hello" ಉದ್ದ ಮುದ್ರಿಸು.      // 5
+
+// Stack operations (over and rot are new!)
+"=== ರಾಶಿ ಕಾರ್ಯಗಳು (Stack Ops) ===" ಮುದ್ರಿಸು.
+೧ ೨ ಮೇಲೆ ಮುದ್ರಿಸು.        // 1 (over: copies second to top)
+ಮುದ್ರಿಸು.                  // 2
+ಮುದ್ರಿಸು.                  // 1
+
+"ಮುಗಿಯಿತು!" ಮುದ್ರಿಸು.      // Done!

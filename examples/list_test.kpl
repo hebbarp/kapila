@@ -1,0 +1,15 @@
+// List Operations Test
+// ಪಟ್ಟಿ ಪರೀಕ್ಷೆ
+
+"=== ಪಟ್ಟಿ (Lists) ===" ಮುದ್ರಿಸು.
+
+// Create a list and get length
+[೧ ೨ ೩ ೪ ೫] ಉದ್ದ ಮುದ್ರಿಸು.     // 5
+
+// Get first element
+[೧೦ ೨೦ ೩೦] ಮೊದಲ ಮುದ್ರಿಸು.     // 10
+
+// Print full list
+[೧ ೨ ೩] ಮುದ್ರಿಸು.              // [1 2 3]
+
+"ಮುಗಿಯಿತು!" ಮುದ್ರಿಸು.
