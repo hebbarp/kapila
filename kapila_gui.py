@@ -8,11 +8,30 @@ import tkinter as tk
 from tkinter import font as tkfont
 import sys
 import os
+import io
 
 kapila_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, kapila_dir)
 
 from src.vm import VM, KapilaError
+
+
+class OutputCapture:
+    """Capture stdout to a list."""
+    def __init__(self):
+        self.lines = []
+
+    def write(self, text):
+        if text and text.strip():
+            self.lines.append(text.rstrip('\n'))
+
+    def flush(self):
+        pass
+
+    def get_output(self):
+        result = self.lines
+        self.lines = []
+        return result
 
 
 def to_kannada(value):
@@ -144,15 +163,33 @@ class KapilaGUI:
             return
 
         try:
-            self.vm.run(line)
+            # Capture stdout to show print output in GUI
+            capture = OutputCapture()
+            old_stdout = sys.stdout
+            sys.stdout = capture
+
+            try:
+                self.vm.run(line)
+            finally:
+                sys.stdout = old_stdout
+
+            # Show any printed output
+            for output_line in capture.get_output():
+                kannada_output = to_kannada(output_line) if isinstance(output_line, (int, float, bool)) else output_line
+                self._print(f"  {kannada_output}\n", 'result')
+
+            # Show stack result if any
             if self.vm.stack:
                 result = to_kannada(self.vm.stack[-1])
                 self._print(f"  → {result}\n\n", 'result')
             else:
-                self._print("  ಸರಿ\n\n", 'result')
+                self._print("\n")
+
         except KapilaError as e:
+            sys.stdout = old_stdout if 'old_stdout' in dir() else sys.stdout
             self._print(f"  ದೋಷ: {e}\n\n", 'error')
         except Exception as e:
+            sys.stdout = old_stdout if 'old_stdout' in dir() else sys.stdout
             self._print(f"  ದೋಷ: {e}\n\n", 'error')
 
     def _hist_up(self, event):
