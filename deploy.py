@@ -40,6 +40,12 @@ FILES = [
     "src/unicode/__init__.py",
     "src/unicode/kannada.py",
     "src/unicode/hindi.py",
+    "src/unicode/telugu.py",
+    # sandarbha (context resolver)
+    "src/sandarbha/__init__.py",
+    "src/sandarbha/context.py",
+    "src/sandarbha/frames.py",
+    "src/sandarbha/vibhakti.py",
     # semantic
     "src/semantic/__init__.py",
     "src/semantic/types.py",
