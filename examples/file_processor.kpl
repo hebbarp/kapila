@@ -1,0 +1,36 @@
+// ಕಡತ ಸಂಸ್ಕಾರಕ (File Processor)
+// =================================
+// A CLI tool that reads a file and counts lines/words
+// Usage: kapilac examples/ಕಡತ_ಸಂಸ್ಕಾರಕ.kpl -r -- <filename>
+
+// ಸಾಲುಎಣಿಕೆ: count lines by splitting on newline
+ಸಾಲುಎಣಿಕೆ ಅಂದರೆ "\n" ವಿಭಜಿಸು ಉದ್ದ ॥
+
+// ಪದಎಣಿಕೆ: count words by splitting on space
+ಪದಎಣಿಕೆ ಅಂದರೆ " " ವಿಭಜಿಸು ಉದ್ದ ॥
+
+// ಅಕ್ಷರಎಣಿಕೆ: character count
+ಅಕ್ಷರಎಣಿಕೆ ಅಂದರೆ ಉದ್ದ ॥
+
+// Check if filename was provided
+ವಾದಸಂಖ್ಯೆ 2 ಕಿರಿದು
+[ "ಬಳಕೆ: ಕಡತ_ಸಂಸ್ಕಾರಕ <ಕಡತಹೆಸರು>" ಮುದ್ರಿಸು ]
+[
+  // Read the file
+  1 ವಾದ ನಕಲು
+  "ಕಡತ: " ಮುದ್ರಿಸು ಮುದ್ರಿಸು
+
+  // Read and analyze
+  1 ವಾದ ಓದು
+  ನಕಲು ನಕಲು
+
+  "ಸಾಲುಗಳು: " ಮುದ್ರಿಸು
+  ಸಾಲುಎಣಿಕೆ ಮುದ್ರಿಸು
+
+  "ಪದಗಳು: " ಮುದ್ರಿಸು
+  ಪದಎಣಿಕೆ ಮುದ್ರಿಸು
+
+  "ಅಕ್ಷರಗಳು: " ಮುದ್ರಿಸು
+  ಅಕ್ಷರಎಣಿಕೆ ಮುದ್ರಿಸು
+]
+ಆದರೆಇಲ್ಲ

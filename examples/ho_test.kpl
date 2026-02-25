@@ -1,0 +1,18 @@
+// Higher-order function test for C compilation
+
+// === Map ===
+double: dup + ॥
+nums := [ 1 2 3 4 5 ]
+nums [ dup + ] map ಮುದ್ರಿಸು.
+
+// === Filter ===
+nums [ dup 3 > ] filter ಮುದ್ರಿಸು.
+
+// === Each ===
+nums [ ಮುದ್ರಿಸು ] each.
+
+// === Fold ===
+nums 0 [ + ] fold ಮುದ್ರಿಸು.
+
+// === Times ===
+3 [ "hello" ಮುದ್ರಿಸು ] times.

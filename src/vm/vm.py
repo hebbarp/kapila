@@ -8,9 +8,17 @@ Perl-style DWIM (Do What I Mean):
 - Inside blocks: pure postfix Forth-style (dup *)
 """
 
+import os
 from typing import Any, Dict, List, Optional
 from ..lexer import tokenize, Token, TokenType
 from .builtins import BUILTINS
+from ..sandarbha import (
+    Sandarbha, analyze_vibhakti, VibhaktiResult,
+    VERB_FRAMES, NOUN_TYPE_MAP, infer_type,
+)
+
+# Word-learning keywords across supported languages
+ANDARE_WORDS = frozenset({'ಅಂದರೆ', 'मतलब', 'అంటే'})
 
 
 class KapilaError(Exception):
@@ -31,11 +39,108 @@ class Block:
 class VM:
     """Kapila virtual machine."""
 
-    def __init__(self):
+    def __init__(self, enable_sandarbha=False):
         self.stack: List[Any] = []
         self.words: Dict[str, Block] = {}
         self.variables: Dict[str, Any] = {}
+        self.sutras: Dict[str, Block] = {}
         self.builtins = BUILTINS
+
+        # Sandarbha (context resolver) — opt-in
+        if enable_sandarbha:
+            self.sandarbha = Sandarbha()
+            self._stmt_context: List[VibhaktiResult] = []
+            self._known_words = self._build_known_words()
+        else:
+            self.sandarbha = None
+            self._stmt_context = []
+            self._known_words = frozenset()
+
+        self._load_prelude()
+
+    def _load_prelude(self):
+        """Load the standard library prelude if available."""
+        lib_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'lib')
+        prelude = os.path.join(lib_dir, 'prelude.kpl')
+        if os.path.exists(prelude):
+            with open(prelude, 'r', encoding='utf-8') as f:
+                self.run(f.read())
+
+    def _build_known_words(self) -> frozenset:
+        """Build the set of all known words (builtins + vocabulary + keywords).
+
+        This prevents vibhakti decomposition from mangling existing words.
+        """
+        from ..vocabulary import VOCABULARY
+        from ..lexer.keywords import KEYWORDS
+        words = set(self.builtins.keys())
+        words.update(VOCABULARY.keys())
+        words.update(KEYWORDS.keys())
+        # Also add ANDARE_WORDS
+        words.update(ANDARE_WORDS)
+        return frozenset(words)
+
+    def _resolve_stem(self, stem: str):
+        """Resolve a vibhakti stem to a value.
+
+        Checks variables, then returns the stem string itself as a symbolic name.
+        """
+        if stem in self.variables:
+            return self.variables[stem]
+        return stem
+
+    def _resolve_and_execute(self, verb: str):
+        """Resolve missing slots from context, then execute a framed verb.
+
+        Stack-first rule: if the stack already has enough values for all
+        slots (from this statement), execute normally — no context needed.
+
+        After execution, record all consumed values in context so future
+        bare verbs can reuse them.
+        """
+        frame = VERB_FRAMES[verb]
+        n_slots = len(frame)
+
+        # How many values were pushed onto the stack in this statement?
+        n_on_stack = len(self.stack) - getattr(self, '_stmt_stack_start', 0)
+
+        if n_on_stack >= n_slots:
+            # Stack-first: all slots filled — peek at values for context, then execute
+            # Record the top n_slots values in context (deepest first = frame order)
+            slot_values = self.stack[-n_slots:]
+            for (role, type_constraint), val in zip(frame, slot_values):
+                self.sandarbha.record(val, role, infer_type(str(val), val))
+            self._execute_word(verb)
+            return
+
+        # Resolve missing slots from context (from first/deepest to last)
+        n_provided = n_on_stack
+        resolved = []
+        for i, (role, type_constraint) in enumerate(frame):
+            if i < (n_slots - n_provided):
+                # This slot is missing from stack — resolve from context
+                value = self.sandarbha.query_role_with_type(role, type_constraint)
+                if value is None:
+                    raise KapilaError(
+                        f"ಸಂದರ್ಭ ದೋಷ: '{verb}' needs '{role}' but no value in context"
+                    )
+                resolved.append(value)
+
+        # Push resolved values below the already-provided values
+        if resolved and n_provided > 0:
+            provided_values = []
+            for _ in range(n_provided):
+                provided_values.append(self.pop())
+            provided_values.reverse()
+            for val in resolved:
+                self.push(val)
+            for val in provided_values:
+                self.push(val)
+        else:
+            for val in resolved:
+                self.push(val)
+
+        self._execute_word(verb)
 
     def push(self, value: Any):
         self.stack.append(value)
@@ -93,6 +198,14 @@ class VM:
             self._define_word()
             return
 
+        # Word learning: name ಅಂದರೆ body ॥
+        if (token.type == TokenType.WORD and
+            self._peek_type(1) == TokenType.WORD and
+            self.pos + 1 < len(self.tokens) and
+            self.tokens[self.pos + 1].value in ANDARE_WORDS):
+            self._define_word_andare()
+            return
+
         # Assignment: name := expr.
         if token.type == TokenType.WORD and self._peek_type(1) == TokenType.ASSIGN:
             self._assignment()
@@ -102,15 +215,31 @@ class VM:
         self._expression_and_actions()
 
     def _define_word(self):
-        """Parse: name: body ॥"""
+        """Parse: name: body . (or name: body ॥ for backward compatibility)"""
         name = self._advance().value
         self._advance()  # skip :
 
         body = []
-        while self._current().type not in (TokenType.DEF_END, TokenType.EOF):
+        # Accept either . (DOT) or ॥ (DEF_END) as terminator
+        while self._current().type not in (TokenType.DOT, TokenType.DEF_END, TokenType.EOF):
             body.append(self._advance())
 
-        if self._current().type == TokenType.DEF_END:
+        # Skip the terminator
+        if self._current().type in (TokenType.DOT, TokenType.DEF_END):
+            self._advance()
+
+        self.words[name] = Block(body)
+
+    def _define_word_andare(self):
+        """Parse: name ಅಂದರೆ body . (or ॥)"""
+        name = self._advance().value   # word name
+        self._advance()                 # skip ಅಂದರೆ/मतलब/అంటే
+
+        body = []
+        while self._current().type not in (TokenType.DOT, TokenType.DEF_END, TokenType.EOF):
+            body.append(self._advance())
+
+        if self._current().type in (TokenType.DOT, TokenType.DEF_END):
             self._advance()
 
         self.words[name] = Block(body)
@@ -123,11 +252,21 @@ class VM:
         value = self._parse_expr()
         self.variables[name] = value
 
+        # Record in sandarbha context for implicit resolution
+        if self.sandarbha:
+            type_tag = infer_type(name, value)
+            self.sandarbha.record(value, 'ವಸ್ತು', type_tag)
+
         if self._current().type == TokenType.DOT:
             self._advance()
 
     def _expression_and_actions(self):
         """Parse expression, then postfix actions."""
+        # Reset per-statement context for sandarbha
+        if self.sandarbha:
+            self._stmt_context = []
+            self._stmt_stack_start = len(self.stack)
+
         # Try to parse an infix expression
         value = self._parse_expr()
 
@@ -152,7 +291,33 @@ class VM:
                 # Push string onto stack
                 self.push(self._advance().literal)
             elif token.type == TokenType.WORD:
-                self._execute_word(self._advance().value)
+                word = self._advance().value
+                if self.sandarbha:
+                    vr = analyze_vibhakti(word, self._known_words)
+                    if vr.role is not None:
+                        # Vibhakti-tagged word: resolve stem, push, record
+                        resolved = self._resolve_stem(vr.stem)
+                        self.push(resolved)
+                        self.sandarbha.record(
+                            resolved, vr.role, infer_type(vr.stem, resolved)
+                        )
+                        self._stmt_context.append(vr)
+                        continue
+                    if word in VERB_FRAMES:
+                        # Framed verb: resolve missing slots, then execute
+                        self._resolve_and_execute(word)
+                        self._stmt_context = []
+                        continue
+                    # Check for bare noun as type hint
+                    if word in NOUN_TYPE_MAP:
+                        type_val = self.sandarbha.query_type(NOUN_TYPE_MAP[word])
+                        if type_val is not None:
+                            self.push(type_val)
+                            self._stmt_context.append(
+                                VibhaktiResult(stem=word, role=None)
+                            )
+                            continue
+                self._execute_word(word)
             elif token.type == TokenType.QUOTE:
                 self._advance()
                 if self._current().type == TokenType.WORD:
@@ -292,7 +457,7 @@ class VM:
         return None
 
     def _parse_list_or_block(self) -> Any:
-        """Parse [ ... ] - list if all values, block if has words."""
+        """Parse [ ... ] - list if all values, block if has words/ops."""
         self._advance()  # skip [
 
         # Collect items
@@ -301,6 +466,15 @@ class VM:
 
         start_pos = self.pos
         depth = 1
+
+        # Token types that indicate this is a block (deferred execution)
+        action_types = {
+            TokenType.PLUS, TokenType.MINUS, TokenType.STAR,
+            TokenType.SLASH, TokenType.PERCENT,
+            TokenType.EQ, TokenType.NEQ, TokenType.LT, TokenType.GT,
+            TokenType.LTE, TokenType.GTE,
+            TokenType.ARROW, TokenType.PIPE, TokenType.ASSIGN,
+        }
 
         # Scan to see what's inside
         while depth > 0 and not self._at_end():
@@ -313,8 +487,11 @@ class VM:
                     break
             elif t.type == TokenType.WORD:
                 name = t.value
-                if name in self.builtins or name in self.words:
+                # It's a block if it contains builtins, user words, or variables
+                if name in self.builtins or name in self.words or name in self.variables:
                     has_action = True
+            elif t.type in action_types:
+                has_action = True
             self._advance()
 
         # Reset
@@ -344,25 +521,33 @@ class VM:
         return self._parse_block_body()
 
     def _parse_block_body(self) -> Block:
-        """Parse block contents until ]."""
+        """Parse block contents until ].
+
+        Supports: [ x y -> ... ] or [ x y ಆಗಿ ... ] or [ x y | ... ]
+        """
         params = []
 
-        # Check for params: [ x y | ... ]
+        # Check for params with arrow (->) or pipe (|) or Kannada arrow (ಆಗಿ)
         saved = self.pos
+        has_params = False
+
         while self._current().type == TokenType.WORD:
-            if self._peek_type(1) == TokenType.PIPE:
-                # Has params
-                while self._current().type == TokenType.WORD:
-                    params.append(self._advance().value)
-                    if self._current().type == TokenType.PIPE:
-                        self._advance()
-                        break
+            word = self._current()
+            # Check for Kannada arrow ಆಗಿ
+            if word.value == 'ಆಗಿ':
+                has_params = True
+                self._advance()  # skip ಆಗಿ
                 break
-            else:
+            # Check for -> or | after collecting param
+            params.append(self._advance().value)
+            if self._current().type == TokenType.ARROW or self._current().type == TokenType.PIPE:
+                has_params = True
+                self._advance()  # skip -> or |
                 break
 
-        if not params:
+        if not has_params:
             self.pos = saved
+            params = []
 
         # Collect body tokens
         tokens = []
@@ -421,15 +606,51 @@ class VM:
             self._execute_word(block)
             return
 
+        if self.sandarbha:
+            self.sandarbha.push_scope()
+
         # Bind params
         saved_vars = {}
         for param in reversed(block.params):
             saved_vars[param] = self.variables.get(param)
             self.variables[param] = self.pop()
 
-        # Execute in postfix mode
-        for token in block.tokens:
+        # Execute in postfix mode, handling assignments and inline blocks
+        i = 0
+        while i < len(block.tokens):
+            token = block.tokens[i]
+
+            # Check for assignment pattern: value name :=
+            if (token.type == TokenType.WORD and
+                i + 1 < len(block.tokens) and
+                block.tokens[i + 1].type == TokenType.ASSIGN):
+                name = token.value
+                value = self.pop()
+                self.variables[name] = value
+                i += 2  # skip name and :=
+                continue
+
+            # Handle inline blocks: [ ... ] -> push Block onto stack
+            if token.type == TokenType.LBRACKET:
+                inner_tokens = []
+                depth = 1
+                i += 1  # skip [
+                while i < len(block.tokens) and depth > 0:
+                    t = block.tokens[i]
+                    if t.type == TokenType.LBRACKET:
+                        depth += 1
+                    elif t.type == TokenType.RBRACKET:
+                        depth -= 1
+                        if depth == 0:
+                            i += 1  # skip ]
+                            break
+                    inner_tokens.append(t)
+                    i += 1
+                self.push(Block(inner_tokens))
+                continue
+
             self._execute_token(token)
+            i += 1
 
         # Restore
         for param, val in saved_vars.items():
@@ -437,6 +658,9 @@ class VM:
                 self.variables.pop(param, None)
             else:
                 self.variables[param] = val
+
+        if self.sandarbha:
+            self.sandarbha.pop_scope()
 
     def _execute_token(self, token: Token):
         """Execute single token in postfix mode."""
@@ -452,6 +676,30 @@ class VM:
                 self.push(True)
             elif name in ('ಸುಳ್ಳು', 'false'):
                 self.push(False)
+            elif self.sandarbha:
+                vr = analyze_vibhakti(name, self._known_words)
+                if vr.role is not None:
+                    resolved = self._resolve_stem(vr.stem)
+                    self.push(resolved)
+                    self.sandarbha.record(
+                        resolved, vr.role, infer_type(vr.stem, resolved)
+                    )
+                elif name in VERB_FRAMES:
+                    self._resolve_and_execute(name)
+                elif name in self.variables:
+                    self.push(self.variables[name])
+                elif name in self.builtins:
+                    self.builtins[name](self)
+                elif name in self.words:
+                    self._run_block(self.words[name])
+                elif name in NOUN_TYPE_MAP:
+                    type_val = self.sandarbha.query_type(NOUN_TYPE_MAP[name])
+                    if type_val is not None:
+                        self.push(type_val)
+                    else:
+                        raise KapilaError(f"Unknown word: {name}")
+                else:
+                    raise KapilaError(f"Unknown word: {name}")
             elif name in self.variables:
                 self.push(self.variables[name])
             elif name in self.builtins:

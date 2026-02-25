@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಕಪಿಲ Playground</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans Kannada', 'Tunga', 'Segoe UI', sans-serif;
+            background: #0f1729;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        header {
+            background: #162040;
+            border-bottom: 2px solid #e8922f;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            color: #e8922f;
+            white-space: nowrap;
+        }
+
+        header h1 span {
+            color: #8899bb;
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        select {
+            background: #1e2d50;
+            color: #c0c8dd;
+            border: 1px solid #3a4a6b;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        select:hover { border-color: #e8922f; }
+
+        /* --- Mode toggle --- */
+        .mode-toggle {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #3a4a6b;
+        }
+
+        .mode-toggle button {
+            background: #1e2d50;
+            color: #8899bb;
+            border: none;
+            padding: 6px 14px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .mode-toggle button.active {
+            background: #e8922f;
+            color: #0f1729;
+            font-weight: 700;
+        }
+
+        .mode-toggle button:hover:not(.active) {
+            background: #2a3d60;
+        }
+
+        #run-btn {
+            background: #e8922f;
+            color: #0f1729;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        #run-btn:hover { background: #f5a848; }
+        #run-btn:disabled { background: #6b5a30; cursor: wait; }
+
+        #reset-btn {
+            background: transparent;
+            color: #8899bb;
+            border: 1px solid #3a4a6b;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        #reset-btn:hover { border-color: #e85555; color: #e85555; }
+
+        #about-btn {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            border: 1px solid #3a4a6b;
+            background: transparent;
+            color: #8899bb;
+            font-size: 0.75rem;
+            font-style: italic;
+            font-family: Georgia, serif;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #about-btn:hover { border-color: #e8922f; color: #e8922f; }
+
+        /* --- About modal --- */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #162040;
+            border: 1px solid #3a4a6b;
+            border-radius: 10px;
+            padding: 28px 32px;
+            max-width: 480px; width: 90%;
+            color: #c0c8dd;
+            position: relative;
+            line-height: 1.7;
+        }
+        .modal h2 { color: #e8922f; margin-bottom: 12px; font-size: 1.2rem; }
+        .modal p { font-size: 0.88rem; margin-bottom: 8px; }
+        .modal a { color: #5599dd; }
+        .modal-close {
+            position: absolute; top: 12px; right: 16px;
+            background: none; border: none; color: #556688;
+            font-size: 1.3rem; cursor: pointer;
+        }
+        .modal-close:hover { color: #e85555; }
+
+        .shortcut-hint {
+            color: #556688;
+            font-size: 0.75rem;
+        }
+
+        /* --- Main layout --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .panel-header {
+            background: #162040;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            color: #6b7fa5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e2d50;
+        }
+
+        .divider {
+            width: 3px;
+            background: #1e2d50;
+            cursor: col-resize;
+        }
+
+        /* --- Editor --- */
+        #editor {
+            flex: 1;
+            width: 100%;
+            background: #0b1120;
+            color: #d0d8ee;
+            border: none;
+            padding: 16px;
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+
+        #editor::placeholder {
+            color: #3a4a6b;
+        }
+
+        /* --- Output --- */
+        .output-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #0b1120;
+        }
+
+        #output {
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #66cc88;
+            min-height: 2em;
+        }
+
+        #output.error { color: #e85555; }
+        #output.empty { color: #556688; font-style: italic; }
+
+        /* --- Generated code display --- */
+        #generated-code {
+            display: none;
+            background: #111b30;
+            border: 1px solid #2a3d60;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #e8922f;
+            white-space: pre-wrap;
+        }
+
+        #generated-code .label {
+            color: #556688;
+            font-size: 0.75rem;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        #generated-code .intent {
+            color: #5599dd;
+            font-size: 0.75rem;
+            float: right;
+        }
+
+        .stack-section {
+            border-top: 1px solid #1e2d50;
+            padding: 10px 16px;
+            background: #0d1528;
+        }
+
+        .stack-label {
+            font-size: 0.75rem;
+            color: #556688;
+            margin-bottom: 4px;
+        }
+
+        #stack {
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.85rem;
+            color: #5599dd;
+            white-space: pre-wrap;
+        }
+
+        /* --- Context panel (Sandarbha) --- */
+        .context-section {
+            display: none;
+            border-top: 1px solid #1e2d50;
+            padding: 10px 16px;
+            background: #0d1528;
+        }
+
+        .context-section.visible { display: block; }
+
+        .context-label {
+            font-size: 0.75rem;
+            color: #556688;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .session-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #44bb66;
+        }
+
+        .session-dot.inactive { background: #556688; }
+
+        #context-table {
+            width: 100%;
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.82rem;
+            border-collapse: collapse;
+        }
+
+        #context-table td {
+            padding: 2px 8px 2px 0;
+            vertical-align: top;
+        }
+
+        #context-table td:first-child {
+            color: #e8922f;
+            white-space: nowrap;
+        }
+
+        #context-table td:last-child {
+            color: #66cc88;
+            word-break: break-all;
+        }
+
+        .context-empty {
+            font-size: 0.8rem;
+            color: #3a4a6b;
+            font-style: italic;
+        }
+
+        /* --- History trail (Sandarbha) --- */
+        .history-section {
+            display: none;
+            border-bottom: 1px solid #1e2d50;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 8px 16px;
+            background: #0e1425;
+        }
+
+        .history-section.visible { display: block; }
+
+        .history-entry {
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.8rem;
+            color: #556688;
+            padding: 2px 0;
+            border-bottom: 1px solid #141e30;
+        }
+
+        .history-entry .hist-code { color: #8899bb; }
+        .history-entry .hist-out  { color: #44885a; margin-left: 12px; }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .workspace {
+                flex-direction: column;
+            }
+
+            .divider {
+                width: auto;
+                height: 3px;
+                cursor: row-resize;
+            }
+
+            .panel { min-height: 200px; }
+
+            header { padding: 10px 12px; }
+            header h1 { font-size: 1.1rem; }
+
+            .header-controls {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            select, #run-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ಕಪಿಲ <span>Playground</span></h1>
+        <button id="about-btn" title="About ಕಪಿಲ">i</button>
+        <div class="header-controls">
+            <div class="mode-toggle">
+                <button id="mode-code" class="active">ಕೋಡ್</button>
+                <button id="mode-nl">ಸಹಜ ಭಾಷೆ</button>
+                <button id="mode-sandarbha">ಸಂದರ್ಭ</button>
+            </div>
+            <div class="mode-toggle">
+                <button id="lang-kn" class="active">ಕನ್ನಡ</button>
+                <button id="lang-hi">हिन्दी</button>
+            </div>
+            <select id="examples">
+                <option value="">ಉದಾಹರಣೆಗಳು (Examples)...</option>
+            </select>
+            <button id="run-btn">▶ ಓಡಿಸು (Run)</button>
+            <button id="reset-btn">Reset</button>
+            <span class="shortcut-hint">Ctrl+Enter</span>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Editor panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span id="editor-label">ಕೋಡ್ (Code)</span>
+                <span id="char-count">0 / 5000</span>
+            </div>
+            <div class="history-section" id="history-section"></div>
+            <textarea id="editor" spellcheck="false"
+                placeholder="// ಇಲ್ಲಿ ಕಪಿಲ ಕೋಡ್ ಬರೆಯಿರಿ...&#10;// Write Kapila code here...&#10;&#10;೫ ೩ ಕೂಡು ಮುದ್ರಿಸು."></textarea>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Output panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span id="output-label">ಫಲಿತಾಂಶ (Output)</span>
+            </div>
+            <div class="output-area">
+                <div id="generated-code">
+                    <span class="intent" id="nl-intent"></span>
+                    <span class="label">ರಚಿತ ಕೋಡ್ (Generated Code):</span>
+                    <span id="nl-code"></span>
+                </div>
+                <pre id="output" class="empty">ಕೋಡ್ ಓಡಿಸಲು ▶ ಒತ್ತಿ ಅಥವಾ Ctrl+Enter ಬಳಸಿ
+Press ▶ or Ctrl+Enter to run code</pre>
+            </div>
+            <div class="stack-section">
+                <div class="stack-label">Stack</div>
+                <pre id="stack">[]</pre>
+            </div>
+            <div class="context-section" id="context-section">
+                <div class="context-label">
+                    <span class="session-dot inactive" id="session-dot"></span>
+                    ಸಂದರ್ಭ (Context)
+                </div>
+                <table id="context-table"></table>
+                <div class="context-empty" id="context-empty">ಯಾವುದೇ ಸಂದರ್ಭವಿಲ್ಲ (no context yet)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About modal -->
+    <div class="modal-overlay" id="about-modal">
+        <div class="modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <h2>ಕಪಿಲ (Kapila)</h2>
+            <p>A Kannada programming language — stack-based, concatenative, with Forth's soul and Smalltalk's face.</p>
+            <p>Write code in Kannada script or switch to Natural Language mode and let PicoNN understand your intent.</p>
+            <p style="font-size:0.78rem; color:#556688; margin-top:12px;">Built with Pampa (akshara-aware text processing) &amp; PicoNN (scalar autograd).</p>
+        </div>
+    </div>
+
+    <script>
+        const editor       = document.getElementById('editor');
+        const output       = document.getElementById('output');
+        const stack        = document.getElementById('stack');
+        const runBtn       = document.getElementById('run-btn');
+        const charCount    = document.getElementById('char-count');
+        const exSelect     = document.getElementById('examples');
+        const editorLabel  = document.getElementById('editor-label');
+        const modeCode     = document.getElementById('mode-code');
+        const modeNL       = document.getElementById('mode-nl');
+        const modeSandarbha = document.getElementById('mode-sandarbha');
+        const genCodeBox   = document.getElementById('generated-code');
+        const nlCode       = document.getElementById('nl-code');
+        const nlIntent     = document.getElementById('nl-intent');
+        const contextSection = document.getElementById('context-section');
+        const contextTable = document.getElementById('context-table');
+        const contextEmpty = document.getElementById('context-empty');
+        const sessionDot   = document.getElementById('session-dot');
+        const historySection = document.getElementById('history-section');
+
+        let currentMode = 'code';  // 'code', 'nl', or 'sandarbha'
+        let sandarbhaSessionId = null;
+        let currentLang = 'kn';   // 'kn' or 'hi'
+
+        const langKn = document.getElementById('lang-kn');
+        const langHi = document.getElementById('lang-hi');
+
+        const UI = {
+            kn: {
+                code: '// ಇಲ್ಲಿ ಕಪಿಲ ಕೋಡ್ ಬರೆಯಿರಿ...\n// Write Kapila code here...\n\n೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.',
+                nl: 'ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ...\nWrite in natural Kannada...\n\nExample: ಐದು ಮತ್ತು ಮೂರು ಕೂಡಿಸು',
+                ready: 'ಕೋಡ್ ಓಡಿಸಲು ▶ ಒತ್ತಿ ಅಥವಾ Ctrl+Enter ಬಳಸಿ',
+                nlReady: 'ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ, PicoNN ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತದೆ!',
+                outputLabel: 'ಫಲಿತಾಂಶ (Output)',
+                genCodeLabel: 'ರಚಿತ ಕೋಡ್ (Generated Code):',
+                runBtn: '▶ ಓಡಿಸು',
+                running: '⏳ ಓಡುತ್ತಿದೆ...',
+                empty: 'ಖಾಲಿ — ಏನಾದರೂ ಬರೆಯಿರಿ!',
+                noOutput: '(ಯಾವುದೇ ಔಟ್‌ಪುಟ್ ಇಲ್ಲ / no output)',
+                errorSep: '--- ದೋಷ (Error) ---',
+                modeCode: 'ಕೋಡ್',
+                modeNL: 'ಸಹಜ ಭಾಷೆ',
+                modeSandarbha: 'ಸಂದರ್ಭ',
+                sandarbhaReady: 'ಸಂದರ್ಭ ಮೋಡ್: ಹೇಳಿಕೆಗಳನ್ನು ಒಂದೊಂದಾಗಿ ಬರೆಯಿರಿ — ಸಂದರ್ಭ ಸಂಗ್ರಹವಾಗುತ್ತದೆ',
+                sandarbhaPlaceholder: '// ಸಂದರ್ಭ ಮೋಡ್: ಒಂದು ಹೇಳಿಕೆ ಬರೆಯಿರಿ\n// Context mode: type one statement at a time\n\n"hello" ಮುದ್ರಿಸು.',
+                editorLabel: { code: 'ಕೋಡ್ (Code)', nl: 'ಸಹಜ ಭಾಷೆ (Natural Language)', sandarbha: 'ಸಂದರ್ಭ (Context)' },
+                exLabel: 'ಉದಾಹರಣೆಗಳು (Examples)...',
+                title: 'ಕಪಿಲ',
+            },
+            hi: {
+                code: '// यहाँ कपिल कोड लिखें...\n// Write Kapila code here...\n\n५ ३ जोड़ो छापो.',
+                nl: 'हिन्दी में लिखें...\nWrite in natural Hindi...\n\nExample: पाँच और तीन जोड़ो',
+                ready: 'कोड चलाने के लिए ▶ दबाएँ या Ctrl+Enter',
+                nlReady: 'हिन्दी में लिखें, PicoNN समझेगा!',
+                outputLabel: 'परिणाम (Output)',
+                genCodeLabel: 'उत्पन्न कोड (Generated Code):',
+                runBtn: '▶ चलाओ',
+                running: '⏳ चल रहा है...',
+                empty: 'खाली — कुछ लिखें!',
+                noOutput: '(कोई आउटपुट नहीं / no output)',
+                errorSep: '--- त्रुटि (Error) ---',
+                modeCode: 'कोड',
+                modeNL: 'सहज भाषा',
+                modeSandarbha: 'संदर्भ',
+                sandarbhaReady: 'संदर्भ मोड: एक-एक कथन लिखें — संदर्भ संचित होता है',
+                sandarbhaPlaceholder: '// संदर्भ मोड: एक कथन लिखें\n// Context mode: type one statement at a time\n\n"hello" छापो.',
+                editorLabel: { code: 'कोड (Code)', nl: 'सहज भाषा (Natural Language)', sandarbha: 'संदर्भ (Context)' },
+                exLabel: 'उदाहरण (Examples)...',
+                title: 'कपिल',
+            },
+        };
+
+        const NL_EXAMPLES = {
+            kn: [
+                { name: 'ಕೂಡು (Add)', text: 'ಐದು ಮತ್ತು ಮೂರು ಕೂಡಿಸು' },
+                { name: 'ಕಳೆ (Subtract)', text: '೧೦ ೩ ಕಳೆ' },
+                { name: 'ಗುಣಿಸು (Multiply)', text: '೬ ೭ ಗುಣಿಸು' },
+                { name: 'ಭಾಗಿಸು (Divide)', text: '೧೦೦ ೪ ಭಾಗಿಸು' },
+                { name: 'ವರ್ಗ (Square)', text: '೫ ವರ್ಗ' },
+                { name: 'ನಮಸ್ಕಾರ (Hello)', text: 'ನಮಸ್ಕಾರ ಪ್ರಪಂಚ' },
+                { name: 'ಮುದ್ರಿಸು (Print)', text: '೪೨ ಮುದ್ರಿಸು' },
+                { name: 'ಪಟ್ಟಿ (List)', text: 'ಪಟ್ಟಿ ೧ ೨ ೩ ೪ ೫' },
+            ],
+            hi: [
+                { name: 'जोड़ो (Add)', text: '५ ३ जोड़ो छापो.' },
+                { name: 'घटाओ (Subtract)', text: '२० ५ घटाओ छापो.' },
+                { name: 'गुणा (Multiply)', text: '६ ७ गुणा छापो.' },
+                { name: 'वर्ग (Square)', text: '७ नकल गुणा छापो.' },
+                { name: 'नमस्ते (Hello)', text: '"नमस्ते दुनिया!" छापो.' },
+                { name: 'सूची (List)', text: '[१ २ ३ ४ ५] लंबाई छापो.' },
+            ],
+        };
+
+        const CODE_EXAMPLES_HI = [
+            { name: 'नमस्ते.kpl', code: '// नमस्ते दुनिया\n"नमस्ते दुनिया!" छापो.' },
+            { name: 'गणित.kpl', code: '// बुनियादी गणित\n५ ३ जोड़ो छापो.\n१० ४ गुणा छापो.\n२० ५ घटाओ छापो.' },
+            { name: 'सूची.kpl', code: '// सूची संचालन\n[१ २ ३ ४ ५] लंबाई छापो.\n[१० २० ३०] पहला छापो.' },
+            { name: 'स्टैक.kpl', code: '// स्टैक संचालन\n५ नकल गुणा छापो.\n३ ४ बदलो छापो. छापो.' },
+        ];
+
+        const SANDARBHA_EXAMPLES = [
+            {
+                name: 'ಸಂದರ್ಭ ಪ್ರದರ್ಶನ (Context Demo)',
+                steps: [
+                    '"hello" ಮುದ್ರಿಸು.',
+                    'ಮುದ್ರಿಸು.',
+                ],
+            },
+            {
+                name: 'ವಿಭಕ್ತಿ (Vibhakti)',
+                steps: [
+                    'x := "report.pdf".',
+                    'x ಮುದ್ರಿಸು.',
+                ],
+            },
+            {
+                name: 'ಗಣಿತ ಸಂದರ್ಭ (Math Context)',
+                steps: [
+                    '೫ ೩ ಕೂಡು.',
+                    'ಮುದ್ರಿಸು.',
+                ],
+            },
+        ];
+
+        // --- Mode toggle ---
+        modeCode.addEventListener('click', () => switchMode('code'));
+        modeNL.addEventListener('click', () => switchMode('nl'));
+        modeSandarbha.addEventListener('click', () => switchMode('sandarbha'));
+
+        // --- Language toggle ---
+        langKn.addEventListener('click', () => switchLang('kn'));
+        langHi.addEventListener('click', () => switchLang('hi'));
+
+        function switchLang(lang) {
+            currentLang = lang;
+            langKn.classList.toggle('active', lang === 'kn');
+            langHi.classList.toggle('active', lang === 'hi');
+            applyLangUI();
+            switchMode(currentMode);
+        }
+
+        function applyLangUI() {
+            const L = UI[currentLang];
+            document.querySelector('header h1').childNodes[0].textContent = L.title + ' ';
+            document.getElementById('output-label').textContent = L.outputLabel;
+            document.querySelector('#generated-code .label').textContent = L.genCodeLabel;
+            modeCode.textContent = L.modeCode;
+            modeNL.textContent = L.modeNL;
+            modeSandarbha.textContent = L.modeSandarbha;
+            runBtn.textContent = L.runBtn;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            modeCode.classList.toggle('active', mode === 'code');
+            modeNL.classList.toggle('active', mode === 'nl');
+            modeSandarbha.classList.toggle('active', mode === 'sandarbha');
+
+            const L = UI[currentLang];
+            editorLabel.textContent = L.editorLabel[mode];
+
+            if (mode === 'sandarbha') {
+                editor.placeholder = L.sandarbhaPlaceholder;
+                loadSandarbhaExamples();
+                contextSection.classList.add('visible');
+                historySection.classList.add('visible');
+                sessionDot.classList.toggle('inactive', !sandarbhaSessionId);
+            } else {
+                editor.placeholder = mode === 'nl' ? L.nl : L.code;
+                contextSection.classList.remove('visible');
+                historySection.classList.remove('visible');
+                if (mode === 'nl') {
+                    loadNLExamples();
+                } else {
+                    loadCodeExamples();
+                }
+            }
+
+            // Reset output
+            genCodeBox.style.display = 'none';
+            if (mode === 'sandarbha') {
+                output.textContent = L.sandarbhaReady;
+            } else if (mode === 'nl') {
+                output.textContent = L.nlReady;
+            } else {
+                output.textContent = L.ready;
+            }
+            output.className = 'empty';
+            stack.textContent = '[]';
+        }
+
+        function loadCodeExamples() {
+            exSelect.innerHTML = `<option value="">${UI[currentLang].exLabel}</option>`;
+
+            if (currentLang === 'hi') {
+                CODE_EXAMPLES_HI.forEach(ex => {
+                    const opt = document.createElement('option');
+                    opt.value = ex.code;
+                    opt.textContent = ex.name;
+                    exSelect.appendChild(opt);
+                });
+            } else {
+                fetch('examples')
+                    .then(r => r.json())
+                    .then(list => {
+                        list.forEach(ex => {
+                            const opt = document.createElement('option');
+                            opt.value = ex.code;
+                            opt.textContent = ex.name;
+                            exSelect.appendChild(opt);
+                        });
+                    });
+            }
+        }
+
+        function loadNLExamples() {
+            exSelect.innerHTML = `<option value="">${UI[currentLang].exLabel}</option>`;
+            (NL_EXAMPLES[currentLang] || []).forEach(ex => {
+                const opt = document.createElement('option');
+                opt.value = ex.text || ex.code;
+                opt.textContent = ex.name;
+                exSelect.appendChild(opt);
+            });
+        }
+
+        function loadSandarbhaExamples() {
+            exSelect.innerHTML = `<option value="">${UI[currentLang].exLabel}</option>`;
+            SANDARBHA_EXAMPLES.forEach(ex => {
+                const opt = document.createElement('option');
+                opt.value = ex.steps.join('\n');
+                opt.textContent = ex.name;
+                exSelect.appendChild(opt);
+            });
+        }
+
+        // --- Character count ---
+        editor.addEventListener('input', () => {
+            charCount.textContent = `${editor.value.length} / 5000`;
+        });
+
+        // --- Tab inserts spaces ---
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end   = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 4;
+            }
+        });
+
+        // --- Ctrl+Enter to run ---
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+        });
+
+        // --- Run button ---
+        runBtn.addEventListener('click', runCode);
+
+        // --- Execute ---
+        async function runCode() {
+            const L = UI[currentLang];
+            const text = editor.value.trim();
+            if (!text) {
+                output.textContent = L.empty;
+                output.className = 'empty';
+                stack.textContent = '[]';
+                genCodeBox.style.display = 'none';
+                return;
+            }
+
+            runBtn.disabled = true;
+            runBtn.textContent = L.running;
+            output.textContent = '';
+            output.className = '';
+            stack.textContent = '[]';
+
+            try {
+                if (currentMode === 'sandarbha') {
+                    await runSandarbha(text);
+                } else if (currentMode === 'nl') {
+                    await runNL(text);
+                } else {
+                    await runDirect(text);
+                }
+            } catch (err) {
+                output.textContent = 'Network error: ' + err.message;
+                output.className = 'error';
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = L.runBtn;
+            }
+        }
+
+        async function runDirect(code) {
+            genCodeBox.style.display = 'none';
+            const resp = await fetch('run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code }),
+            });
+            const data = await resp.json();
+            displayResult(data);
+        }
+
+        async function runNL(text) {
+            const resp = await fetch('nl', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+            const data = await resp.json();
+
+            // Show generated code
+            if (data.code) {
+                genCodeBox.style.display = 'block';
+                nlCode.textContent = data.code;
+                nlIntent.textContent = data.intent + ' (' + Math.round(data.confidence * 100) + '%)';
+            } else {
+                genCodeBox.style.display = 'none';
+            }
+
+            displayResult(data);
+        }
+
+        async function runSandarbha(code) {
+            genCodeBox.style.display = 'none';
+            const resp = await fetch('run-sandarbha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, session_id: sandarbhaSessionId }),
+            });
+            const data = await resp.json();
+            sandarbhaSessionId = data.session_id;
+            sessionDot.classList.remove('inactive');
+            displayResult(data);
+            displayContext(data.context);
+            addHistory(code, data.output);
+            editor.value = '';
+            charCount.textContent = '0 / 5000';
+        }
+
+        function displayContext(ctx) {
+            if (!ctx || Object.keys(ctx).length === 0) {
+                contextTable.innerHTML = '';
+                contextEmpty.style.display = 'block';
+                return;
+            }
+            contextEmpty.style.display = 'none';
+            let html = '';
+            for (const [role, val] of Object.entries(ctx)) {
+                html += `<tr><td>${role}</td><td>${val}</td></tr>`;
+            }
+            contextTable.innerHTML = html;
+        }
+
+        function addHistory(code, out) {
+            const entry = document.createElement('div');
+            entry.className = 'history-entry';
+            entry.innerHTML = `<span class="hist-code">${escapeHtml(code)}</span>`;
+            if (out && out.trim()) {
+                entry.innerHTML += `<span class="hist-out">→ ${escapeHtml(out.trim())}</span>`;
+            }
+            historySection.appendChild(entry);
+            historySection.scrollTop = historySection.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function displayResult(data) {
+            const L = UI[currentLang];
+            if (data.error && !data.output) {
+                output.textContent = data.error;
+                output.className = 'error';
+            } else if (data.error) {
+                output.textContent = data.output + '\n' + L.errorSep + '\n' + data.error;
+                output.className = '';
+            } else if (data.output) {
+                output.textContent = data.output;
+                output.className = '';
+            } else {
+                output.textContent = L.noOutput;
+                output.className = 'empty';
+            }
+
+            stack.textContent = data.stack || '[]';
+        }
+
+        // --- Load examples on change ---
+        exSelect.addEventListener('change', () => {
+            if (exSelect.value) {
+                editor.value = exSelect.value;
+                charCount.textContent = `${editor.value.length} / 5000`;
+            }
+        });
+
+        // --- Reset button ---
+        document.getElementById('reset-btn').addEventListener('click', async () => {
+            const L = UI[currentLang];
+            editor.value = '';
+            charCount.textContent = '0 / 5000';
+            if (currentMode === 'sandarbha') {
+                output.textContent = L.sandarbhaReady;
+            } else if (currentMode === 'nl') {
+                output.textContent = L.nlReady;
+            } else {
+                output.textContent = L.ready;
+            }
+            output.className = 'empty';
+            stack.textContent = '[]';
+            genCodeBox.style.display = 'none';
+            exSelect.value = '';
+
+            // Reset sandarbha session
+            if (sandarbhaSessionId) {
+                try {
+                    await fetch('reset-sandarbha', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sandarbhaSessionId }),
+                    });
+                } catch (e) { /* ignore */ }
+                sandarbhaSessionId = null;
+                sessionDot.classList.add('inactive');
+            }
+            contextTable.innerHTML = '';
+            contextEmpty.style.display = 'block';
+            historySection.innerHTML = '';
+
+            editor.focus();
+        });
+
+        // --- About modal ---
+        const aboutModal = document.getElementById('about-modal');
+        document.getElementById('about-btn').addEventListener('click', () => aboutModal.classList.add('open'));
+        document.getElementById('modal-close').addEventListener('click', () => aboutModal.classList.remove('open'));
+        aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) aboutModal.classList.remove('open'); });
+
+        // --- Initial load ---
+        loadCodeExamples();
+    </script>
+</body>
+</html>

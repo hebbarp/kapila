@@ -1,0 +1,6 @@
+// Fibonacci using stack-based approach
+// Compute first 10 fibonacci numbers
+
+a := 0.
+b := 1.
+10 [ a ಮುದ್ರಿಸು. temp := b. b := a + b. a := temp. ] times.

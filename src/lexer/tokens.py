@@ -38,7 +38,8 @@ class TokenType(Enum):
     RBRACKET = auto()        # ]  (block end)
     LBRACE = auto()          # {  (data structure start)
     RBRACE = auto()          # }  (data structure end)
-    PIPE = auto()            # |  (block parameter separator)
+    PIPE = auto()            # |  (block parameter separator - deprecated, use ->)
+    ARROW = auto()           # -> (block parameter separator)
 
     # Quotation
     QUOTE = auto()           # '  (quote next word)
@@ -58,6 +59,32 @@ class TokenType(Enum):
     GT = auto()              # >
     LTE = auto()             # ≤ or <=
     GTE = auto()             # ≥ or >=
+
+    # Keywords (for procedural syntax)
+    IDENTIFIER = auto()      # generic identifier
+    KARYA = auto()           # ಕಾರ್ಯ (function)
+    HINDIRUGISU = auto()     # ಹಿಂತಿರುಗಿಸು (return)
+    ADARE = auto()           # ಆದರೆ (if)
+    ILLADIDDARE = auto()     # ಇಲ್ಲದಿದ್ದರೆ (else)
+    TANAKA = auto()          # ತನಕ (while)
+    PUNARAAVARTISU = auto()  # ಪುನರಾವರ್ತಿಸು (loop)
+    PRATIYONDAKKU = auto()   # ಪ್ರತಿಯೊಂದಕ್ಕೂ (for-each)
+    NILLISU = auto()         # ನಿಲ್ಲಿಸು (break)
+    MUNDUVARISU = auto()     # ಮುಂದುವರಿಸು (continue)
+    SANKHYE = auto()         # ಸಂಖ್ಯೆ (number type)
+    PURNANKA = auto()        # ಪೂರ್ಣಾಂಕ (integer type)
+    DASHAMANSHA = auto()     # ದಶಮಾಂಶ (float type)
+    PATHYA = auto()          # ಪಠ್ಯ (string type)
+    AKSHARA = auto()         # ಅಕ್ಷರ (char type)
+    PATTI = auto()           # ಪಟ್ಟಿ (list type)
+    SHUNYA = auto()          # ಶೂನ್ಯ (void type)
+    TRUE = auto()            # ನಿಜ (true)
+    FALSE = auto()           # ಸುಳ್ಳು (false)
+    MATTU = auto()           # ಮತ್ತು (and)
+    ATHAVA = auto()          # ಅಥವಾ (or)
+    ALLA = auto()            # ಅಲ್ಲ (not)
+    IRALI = auto()           # ಇರಲಿ (let)
+    MUDHRISU = auto()        # ಮುದ್ರಿಸು (print)
 
     # Special
     NEWLINE = auto()         # newline (may be significant)

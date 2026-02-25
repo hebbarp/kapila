@@ -1,0 +1,10 @@
+// Test new syntax
+
+// Word definition with . terminator (new syntax)
+square: dup * .
+
+// Use the word
+5 square ಮುದ್ರಿಸು.
+
+// String
+"New syntax works!" ಮುದ್ರಿಸು.

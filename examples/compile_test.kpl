@@ -1,0 +1,37 @@
+// ಕಪಿಲ C Compilation Test
+// Tests all major features for the C codegen path
+
+// === Arithmetic ===
+5 3 ಕೂಡು ಮುದ್ರಿಸು.
+10 4 ಕಳೆ ಮುದ್ರಿಸು.
+6 7 ಗುಣಿಸು ಮುದ್ರಿಸು.
+
+// === Math (infix) ===
+100 / 4 ಮುದ್ರಿಸು.
+
+// === Word definition ===
+ವರ್ಗ: ನಕಲು * ॥
+5 ವರ್ಗ ಮುದ್ರಿಸು.
+
+// === Variables ===
+x := 10.
+y := 20.
+x + y ಮುದ್ರಿಸು.
+
+// === Strings ===
+"ನಮಸ್ಕಾರ" ಮುದ್ರಿಸು.
+
+// === Conditional (ternary) ===
+x > 5 ? [ "x is big" ಮುದ್ರಿಸು ] [ "x is small" ಮುದ್ರಿಸು ]
+
+// === Lists ===
+ಸಂಖ್ಯೆಗಳು := [ 1 2 3 4 5 ]
+ಸಂಖ್ಯೆಗಳು ಮುದ್ರಿಸು.
+
+// === Boolean ===
+ನಿಜ ಮುದ್ರಿಸು.
+ಸುಳ್ಳು ಮುದ್ರಿಸು.
+
+// === Comparison ===
+5 = 5 ಮುದ್ರಿಸು.
+3 < 7 ಮುದ್ರಿಸು.

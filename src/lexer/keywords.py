@@ -64,6 +64,37 @@ KEYWORDS = {
     # Other keywords
     'ಇರಲಿ': TokenType.IRALI,                # let (variable declaration)
     'ಮುದ್ರಿಸು': TokenType.MUDHRISU,         # print
+
+    # Block syntax
+    'ಆಗಿ': TokenType.ARROW,                 # -> (block parameter separator, Kannada form)
+
+    # =================================================================
+    # HINDI (Devanagari) KEYWORDS
+    # =================================================================
+    'कार्य': TokenType.KARYA,               # function (kaarya)
+    'लौटाओ': TokenType.HINDIRUGISU,         # return (lautao)
+    'अगर': TokenType.ADARE,                 # if (agar)
+    'नहींतो': TokenType.ILLADIDDARE,        # else (nahin to)
+    'जबतक': TokenType.TANAKA,              # while (jabtak)
+    'दोहराओ': TokenType.PUNARAAVARTISU,     # repeat (dohrao)
+    'हरएक': TokenType.PRATIYONDAKKU,        # for each (har ek)
+    'रोको': TokenType.NILLISU,              # break (roko)
+    'जारीरखो': TokenType.MUNDUVARISU,       # continue (jaari rakho)
+    'संख्या': TokenType.SANKHYE,            # number (sankhya)
+    'पूर्णांक': TokenType.PURNANKA,         # integer (purnaank)
+    'दशमलव': TokenType.DASHAMANSHA,        # decimal (dashamalav)
+    'पाठ': TokenType.PATHYA,                # text/string (paath)
+    'अक्षर': TokenType.AKSHARA,            # character (akshar)
+    'सूची': TokenType.PATTI,                # list (suchi)
+    'शून्य': TokenType.SHUNYA,              # void (shunya)
+    'सत्य': TokenType.TRUE,                 # true (satya)
+    'असत्य': TokenType.FALSE,               # false (asatya)
+    'हाँ': TokenType.TRUE,                  # yes (haan)
+    'और': TokenType.MATTU,                  # and (aur)
+    'या': TokenType.ATHAVA,                 # or (ya)
+    'नहीं': TokenType.ALLA,                 # not (nahin)
+    'रहने दो': TokenType.IRALI,             # let (rehne do)
+    'छापो': TokenType.MUDHRISU,             # print (chhapo)
 }
 
 

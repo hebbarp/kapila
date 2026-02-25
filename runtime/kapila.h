@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
+#include <ctype.h>
 
 /* ============================================================
  * Value Types
@@ -30,11 +32,11 @@ typedef struct KList KList;
 typedef struct {
     ValueType type;
     union {
-        int64_t i;      /* ಪೂರ್ಣಾಂಕ - integer */
-        double f;       /* ದಶಮಾಂಶ - float */
-        bool b;         /* ಬೂಲ್ - boolean */
-        char* s;        /* ಪಠ್ಯ - string */
-        KList* list;    /* ಪಟ್ಟಿ - list */
+        int64_t i;      /* integer */
+        double f;       /* float */
+        bool b;         /* boolean */
+        char* s;        /* string */
+        KList* list;    /* list */
     };
 } Value;
 
@@ -45,11 +47,15 @@ struct KList {
     int cap;
 };
 
+/* Block function pointer for higher-order operations */
+typedef void (*KBlock)(void);
+
 /* ============================================================
  * Runtime Initialization
  * ============================================================ */
 
 void kapila_init(void);
+void kapila_init_args(int argc, char** argv);
 void kapila_cleanup(void);
 
 /* ============================================================
@@ -70,80 +76,155 @@ void push_value(Value v);
 
 Value pop(void);
 Value peek(void);
+bool pop_bool(void);
 
 /* ============================================================
- * Arithmetic Operations - ಅಂಕಗಣಿತ
+ * Arithmetic Operations
  * ============================================================ */
 
-void add_op(void);      /* + ಕೂಡು */
-void sub_op(void);      /* - ಕಳೆ */
-void mul_op(void);      /* * ಗುಣಿಸು */
-void div_op(void);      /* / ಭಾಗಿಸು */
-void mod_op(void);      /* % ಶೇಷ */
+void add_op(void);
+void sub_op(void);
+void mul_op(void);
+void div_op(void);
+void mod_op(void);
 
 /* ============================================================
- * Comparison Operations - ಹೋಲಿಕೆ
+ * Math Operations
  * ============================================================ */
 
-void lt_op(void);       /* < ಕಿರಿದು */
-void gt_op(void);       /* > ಹಿರಿದು */
-void eq_op(void);       /* = ಸಮ */
-void neq_op(void);      /* != ಸಮನಲ್ಲ */
-void lte_op(void);      /* <= */
-void gte_op(void);      /* >= */
+void abs_op(void);
+void min_op(void);
+void max_op(void);
+void pow_op(void);
+void sqrt_op(void);
+void floor_op(void);
+void ceil_op(void);
+void round_op(void);
 
 /* ============================================================
- * Logic Operations - ತರ್ಕ
+ * Comparison Operations
  * ============================================================ */
 
-void and_op(void);      /* ಮತ್ತು */
-void or_op(void);       /* ಅಥವಾ */
-void not_op(void);      /* ಅಲ್ಲ */
+void lt_op(void);
+void gt_op(void);
+void eq_op(void);
+void neq_op(void);
+void lte_op(void);
+void gte_op(void);
 
 /* ============================================================
- * Stack Manipulation - ರಾಶಿ ನಿರ್ವಹಣೆ
+ * Logic Operations
  * ============================================================ */
 
-void dup_op(void);      /* ನಕಲು - duplicate top */
-void drop_op(void);     /* ಬಿಡು - discard top */
-void swap_op(void);     /* ಅದಲುಬದಲು - swap top two */
-void over_op(void);     /* ಮೇಲೆ - copy second to top */
-void rot_op(void);      /* ತಿರುಗಿಸು - rotate top three */
+void and_op(void);
+void or_op(void);
+void not_op(void);
 
 /* ============================================================
- * String Operations - ಪಠ್ಯ ಕಾರ್ಯಗಳು
+ * Stack Manipulation
  * ============================================================ */
 
-void str_len_op(void);      /* ಉದ್ದ - string length */
-void str_concat_op(void);   /* string concatenation */
-void str_at_op(void);       /* character at index */
+void dup_op(void);
+void drop_op(void);
+void swap_op(void);
+void over_op(void);
+void rot_op(void);
 
 /* ============================================================
- * List Operations - ಪಟ್ಟಿ ಕಾರ್ಯಗಳು
+ * String Operations
+ * ============================================================ */
+
+void str_len_op(void);
+void str_concat_op(void);
+void str_at_op(void);
+void str_split_op(void);
+void str_join_op(void);
+void str_substring_op(void);
+void str_find_op(void);
+void str_replace_op(void);
+void str_trim_op(void);
+void str_upper_op(void);
+void str_lower_op(void);
+void str_starts_with_op(void);
+void str_ends_with_op(void);
+void str_contains_op(void);
+
+/* ============================================================
+ * List Operations
  * ============================================================ */
 
 KList* list_new(void);
 void list_free(KList* list);
 void list_push_item(KList* list, Value v);
+KList* list_copy(KList* src);
 
-void list_new_op(void);     /* create empty list */
-void list_push_op(void);    /* ಸೇರಿಸು - append to list */
-void list_len_op(void);     /* ಉದ್ದ - list length */
-void list_at_op(void);      /* ತೆಗೆ - get item at index */
-void list_first_op(void);   /* ಮೊದಲ - first item */
-void list_rest_op(void);    /* ಉಳಿದ - all but first */
+void list_new_op(void);
+void list_push_op(void);
+void list_len_op(void);
+void list_at_op(void);
+void list_first_op(void);
+void list_rest_op(void);
+void list_last_op(void);
+void list_reverse_op(void);
+void list_sort_op(void);
+void list_is_empty_op(void);
+void list_concat_op(void);
+void list_take_op(void);
+void list_drop_items_op(void);
+void list_contains_op(void);
+void list_index_of_op(void);
+void range_op(void);
+void iota_op(void);
 
 /* ============================================================
- * I/O Operations - ಇನ್‌ಪುಟ್/ಔಟ್‌ಪುಟ್
+ * Higher-Order Operations (block-based)
  * ============================================================ */
 
-void print_op(void);        /* ಮುದ್ರಿಸು - print value */
-void println_op(void);      /* print with newline */
-void file_read_op(void);    /* ಓದು - read file */
-void file_write_op(void);   /* ಬರೆ - write file */
+void map_block_op(KBlock fn);
+void filter_block_op(KBlock fn);
+void fold_block_op(KBlock fn);
+void each_block_op(KBlock fn);
+void times_block_op(KBlock fn);
+void while_block_op(KBlock cond, KBlock body);
+void until_block_op(KBlock cond, KBlock body);
+void if_block_op(KBlock then_fn);
+void ifelse_block_op(KBlock then_fn, KBlock else_fn);
+void do_block_op(KBlock fn);
 
 /* ============================================================
- * Memory Management - ಸ್ಮೃತಿ ನಿರ್ವಹಣೆ
+ * Variable Storage
+ * ============================================================ */
+
+void var_set(const char* name, Value v);
+Value var_get(const char* name);
+
+/* ============================================================
+ * Type Conversion
+ * ============================================================ */
+
+void to_string_op(void);
+void to_int_op(void);
+void to_float_op(void);
+
+/* ============================================================
+ * I/O Operations
+ * ============================================================ */
+
+void print_op(void);
+void println_op(void);
+void read_line_op(void);
+void file_read_op(void);
+void file_write_op(void);
+
+/* ============================================================
+ * CLI Arguments
+ * ============================================================ */
+
+void args_count_op(void);
+void args_get_op(void);
+
+/* ============================================================
+ * Memory Management
  * ============================================================ */
 
 char* kapila_strdup(const char* s);

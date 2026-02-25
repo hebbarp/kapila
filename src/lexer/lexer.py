@@ -16,9 +16,11 @@ Handles:
 from typing import Iterator, List, Optional
 from .tokens import Token, TokenType
 from ..unicode import (
-    is_kannada_char,
     is_valid_identifier_start,
     is_valid_identifier_char,
+    is_indic_digit,
+    indic_digit_value,
+    # keep old names as aliases for backward compat
     is_kannada_digit,
     kannada_digit_value,
 )
@@ -66,7 +68,7 @@ class Lexer:
         ch = self._advance()
 
         # Numbers
-        if ch.isdigit() or is_kannada_digit(ch):
+        if ch.isdigit() or is_indic_digit(ch):
             return self._scan_number(ch)
 
         # Strings
@@ -90,6 +92,9 @@ class Lexer:
         if ch == '>' and self._peek() == '=':
             self._advance()
             return self._make_token(TokenType.GTE, ">=")
+        if ch == '-' and self._peek() == '>':
+            self._advance()
+            return self._make_token(TokenType.ARROW, "->")
 
         # Single-character tokens
         simple_tokens = {
@@ -223,12 +228,12 @@ class Lexer:
 
         while not self._at_end():
             ch = self._peek()
-            if ch.isdigit() or is_kannada_digit(ch):
+            if ch.isdigit() or is_indic_digit(ch):
                 chars.append(self._advance())
             elif ch == '.' and not has_dot:
                 # Look ahead - is this a decimal point or statement end?
                 next_ch = self._peek_next()
-                if next_ch.isdigit() or is_kannada_digit(next_ch):
+                if next_ch.isdigit() or is_indic_digit(next_ch):
                     has_dot = True
                     chars.append(self._advance())
                 else:
@@ -244,7 +249,7 @@ class Lexer:
         """Convert number string (possibly with Kannada digits) to value."""
         normalized = []
         for ch in text:
-            kv = kannada_digit_value(ch)
+            kv = indic_digit_value(ch)
             if kv is not None:
                 normalized.append(str(kv))
             else:

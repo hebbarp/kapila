@@ -8,7 +8,7 @@ Recursive descent parser that converts tokens to AST.
 Grammar (informal):
     program     → statement* EOF
     statement   → wordDef | varAssign | exprStmt
-    wordDef     → WORD ':' token* '॥'
+    wordDef     → WORD ':' token* ('.' | '॥')
     varAssign   → WORD ':=' expr '.'
     exprStmt    → expr actions? '.'?
 
@@ -22,7 +22,7 @@ Grammar (informal):
     unary       → ('-'|'ಅಲ್ಲ'|'not')? primary
     primary     → NUMBER | STRING | WORD | block | list | map | '(' expr ')'
 
-    block       → '[' params? body ']'
+    block       → '[' (params ('->' | 'ಆಗಿ' | '|'))? body ']'
     list        → '[' expr* ']'  (when all are values)
     map         → '{' (WORD ':' expr)* '}'
     actions     → WORD+
@@ -46,6 +46,10 @@ class ParseError(Exception):
         self.line = line
         self.column = column
         super().__init__(f"Line {line}:{column}: {message}")
+
+
+# Word-learning keywords across supported languages
+ANDARE_WORDS = frozenset({'ಅಂದರೆ', 'मतलब', 'అంటే'})
 
 
 class Parser:
@@ -128,6 +132,12 @@ class Parser:
         if token.type == TokenType.WORD and self._peek_next().type == TokenType.COLON:
             return self._word_def()
 
+        # Word learning: name ಅಂದರೆ body ॥
+        if (token.type == TokenType.WORD and
+            self._peek_next().type == TokenType.WORD and
+            self._peek_next().value in ANDARE_WORDS):
+            return self._word_learning_def()
+
         # Variable assignment: name := expr.
         if token.type == TokenType.WORD and self._peek_next().type == TokenType.ASSIGN:
             return self._var_assign()
@@ -136,23 +146,47 @@ class Parser:
         return self._expr_stmt()
 
     def _word_def(self) -> WordDef:
-        """Parse: name: body ॥"""
+        """Parse: name: body . (or name: body ॥ for backward compatibility)"""
         name_token = self._advance()
         name = name_token.value
         self._advance()  # skip :
 
         body = []
-        while not self._check(TokenType.DEF_END) and not self._at_end():
+        # Accept either . or ॥ as definition terminator
+        while not self._check(TokenType.DOT) and not self._check(TokenType.DEF_END) and not self._at_end():
             # Inside word definitions, we collect raw expressions
             # This is Forth-style: the body is postfix
             elem = self._parse_body_element()
             if elem:
                 body.append(elem)
 
-        self._match(TokenType.DEF_END)
+        # Accept either . or ॥ (DEF_END) as terminator
+        if not self._match(TokenType.DOT):
+            self._match(TokenType.DEF_END)
 
         return WordDef(
             name=name,
+            body=body,
+            line=name_token.line,
+            column=name_token.column
+        )
+
+    def _word_learning_def(self) -> WordDef:
+        """Parse: name ಅಂದರೆ body . (or ॥)"""
+        name_token = self._advance()   # word name
+        self._advance()                 # skip ಅಂದರೆ/मतलब/అంటే
+
+        body = []
+        while not self._check(TokenType.DOT) and not self._check(TokenType.DEF_END) and not self._at_end():
+            elem = self._parse_body_element()
+            if elem:
+                body.append(elem)
+
+        if not self._match(TokenType.DOT):
+            self._match(TokenType.DEF_END)
+
+        return WordDef(
+            name=name_token.value,
             body=body,
             line=name_token.line,
             column=name_token.column
@@ -169,6 +203,9 @@ class Parser:
             return self._string()
 
         if token.type == TokenType.WORD:
+            # Check for variable assignment: name := expr
+            if self._peek_next().type == TokenType.ASSIGN:
+                return self._var_assign()
             return self._word()
 
         if token.type == TokenType.LBRACKET:
@@ -188,7 +225,7 @@ class Parser:
             op_token = self._advance()
             return Word(name=op_token.value, line=op_token.line, column=op_token.column)
 
-        # Skip unknown tokens
+        # Skip dots and other punctuation inside bodies
         self._advance()
         return None
 
@@ -492,9 +529,12 @@ class Parser:
                     break
             elif token.type == TokenType.WORD:
                 # Check if it's a boolean or an action word
-                if token.value not in ('ನಿಜ', 'true', 'ಸುಳ್ಳು', 'false'):
+                # Also check for Kannada arrow ಆಗಿ which indicates a block
+                if token.value == 'ಆಗಿ':
                     is_block = True
-            elif token.type == TokenType.PIPE:
+                elif token.value not in ('ನಿಜ', 'true', 'ಸುಳ್ಳು', 'false'):
+                    is_block = True
+            elif token.type == TokenType.PIPE or token.type == TokenType.ARROW:
                 is_block = True
             elif token.type in (TokenType.PLUS, TokenType.MINUS, TokenType.STAR,
                                TokenType.SLASH, TokenType.PERCENT,
@@ -518,20 +558,28 @@ class Parser:
         return self._block_body(start_token)
 
     def _block_body(self, start_token: Token) -> Block:
-        """Parse block contents: [ params | body ]"""
+        """Parse block contents: [ params -> body ] or [ params ಆಗಿ body ] or [ params | body ]"""
         params = []
 
-        # Check for params: x y |
+        # Check for params: x y -> or x y ಆಗಿ or x y |
         saved_pos = self.pos
         has_params = False
 
-        # Look for pipe
+        # Look for arrow (->), Kannada arrow (ಆಗಿ), or pipe (|, deprecated)
         temp_params = []
         while self._check(TokenType.WORD):
-            temp_params.append(self._advance().value)
-            if self._check(TokenType.PIPE):
+            word_token = self._peek()
+            # Check if this word is the Kannada arrow ಆಗಿ
+            if word_token.value == 'ಆಗಿ':
                 has_params = True
-                self._advance()  # skip |
+                self._advance()  # skip ಆಗಿ
+                params = temp_params
+                break
+            temp_params.append(self._advance().value)
+            # Check for -> arrow or | pipe
+            if self._check(TokenType.ARROW) or self._check(TokenType.PIPE):
+                has_params = True
+                self._advance()  # skip -> or |
                 params = temp_params
                 break
 

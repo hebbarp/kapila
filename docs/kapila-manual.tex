@@ -1,0 +1,579 @@
+\documentclass[11pt,a4paper]{report}
+
+% XeLaTeX for Unicode support
+\usepackage{fontspec}
+
+% Use fonts with Kannada support
+% Falls back gracefully if fonts not available
+\setmainfont{Arial}
+\newfontfamily\kannadafont{Noto Sans Kannada}[Script=Kannada]
+\newcommand{\kannada}[1]{{\kannadafont #1}}
+
+% Packages
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+% Colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.95}
+\definecolor{kapilacolor}{rgb}{0.72,0.53,0.04}
+
+% Code listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{codegray}
+}
+\lstset{style=mystyle}
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\kannada{ಕಪಿಲ}}
+\fancyfoot[C]{\thepage}
+
+% Title formatting
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{kapilacolor}}
+  {\chaptertitlename\ \thechapter}{20pt}{\Huge}
+
+% Document info
+\title{
+    \vspace{-1cm}
+    {\Huge\bfseries\color{kapilacolor} \kannada{ಕಪಿಲ} (Kapila)}\\[0.5cm]
+    {\Large A Kannada Programming Language}\\[1cm]
+    {\large Language Manual \& Implementation Guide}
+}
+\author{
+    \textbf{Architect and Author:} Prashanth Hebbar\\
+    \texttt{hebbarp@gmail.com}\\[0.5cm]
+    \textbf{Co-Authored By:} Claude Opus 4.5
+}
+\date{Version 0.6.0 \\ January 2026}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+% ============================================================
+\chapter{Introduction}
+% ============================================================
+
+\section{What is Kapila?}
+
+\kannada{ಕಪಿಲ} (Kapila) is a programming language that uses Kannada script natively. Unlike previous attempts that simply translated English keywords to Kannada, Kapila explores whether Kannada's grammatical structure can inspire new programming constructs.
+
+Named after \textbf{Kapila} (\kannada{ಕಪಿಲ}), the ancient Vedic sage who founded the Samkhya school of philosophy—one of the oldest systems of Indian philosophical inquiry that emphasized systematic enumeration and logical analysis.
+
+\section{Design Philosophy}
+
+Kapila combines three programming paradigms:
+
+\begin{itemize}
+    \item \textbf{Forth's Soul}: Stack-based, concatenative core
+    \item \textbf{Smalltalk's Face}: Clean, readable syntax
+    \item \textbf{Perl's Tongue}: Do What I Mean (DWIM) flexibility
+\end{itemize}
+
+\section{Compilation Pipeline}
+
+\begin{verbatim}
+  Kannada Source Code
+        |
+        v
+  +----------+     Tokens
+  |  LEXER   | --> [WORD, NUMBER, ...]
+  +----------+
+        |
+        v
+  +----------+     Abstract Syntax Tree
+  |  PARSER  | --> Program(statements=[...])
+  +----------+
+        |
+        v
+  +----------+     C Code
+  | CODEGEN  | --> #include "kapila.h" ...
+  +----------+
+        |
+        v
+  +----------+     Native Executable
+  | tcc/gcc  | --> program.exe
+  +----------+
+\end{verbatim}
+
+% ============================================================
+\chapter{Language Syntax}
+% ============================================================
+
+\section{Basic Elements}
+
+\subsection{Numbers}
+
+Kapila supports both Kannada and Arabic numerals:
+
+\begin{lstlisting}
+// Kannada numerals
+\end{lstlisting}
+\kannada{೧೨೩} \quad (123)\\
+\kannada{೩.೧೪} \quad (3.14)
+
+\begin{lstlisting}
+// Arabic numerals also work
+123
+3.14
+\end{lstlisting}
+
+\subsection{Strings}
+
+\begin{lstlisting}
+"Hello, World!"
+\end{lstlisting}
+"\kannada{ನಮಸ್ಕಾರ ಪ್ರಪಂಚ}!"
+
+\subsection{Booleans}
+
+\begin{tabular}{ll}
+\toprule
+Kannada & English \\
+\midrule
+\kannada{ಸರಿ}, \kannada{ನಿಜ}, \kannada{ಹೌದು} & true \\
+\kannada{ತಪ್ಪು}, \kannada{ಸುಳ್ಳು}, \kannada{ಇಲ್ಲ} & false \\
+\bottomrule
+\end{tabular}
+
+\section{Arithmetic Operations}
+
+\begin{tabular}{lll}
+\toprule
+Kannada & Symbol & Operation \\
+\midrule
+\kannada{ಕೂಡು} & + & Addition \\
+\kannada{ಕಳೆ} & - & Subtraction \\
+\kannada{ಗುಣಿಸು} & * & Multiplication \\
+\kannada{ಭಾಗಿಸು} & / & Division \\
+\kannada{ಶೇಷ} & \% & Modulo \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+Example:
+\begin{lstlisting}
+// Postfix style (Forth-like)
+5 3 + print.        // 8
+
+// With Kannada words
+\end{lstlisting}
+\kannada{೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.} \quad // 8
+
+\section{Comparison Operations}
+
+\begin{tabular}{lll}
+\toprule
+Kannada & Symbol & Operation \\
+\midrule
+\kannada{ಕಿರಿದು} & < & Less than \\
+\kannada{ಹಿರಿದು} & > & Greater than \\
+\kannada{ಸಮ} & = & Equal \\
+\kannada{ಸಮನಲ್ಲ} & != & Not equal \\
+\bottomrule
+\end{tabular}
+
+\section{Stack Operations}
+
+\begin{tabular}{lll}
+\toprule
+Kannada & English & Effect \\
+\midrule
+\kannada{ನಕಲು} & dup & a -- a a \\
+\kannada{ಬಿಡು} & drop & a -- \\
+\kannada{ಅದಲುಬದಲು} & swap & a b -- b a \\
+\kannada{ಮೇಲೆ} & over & a b -- a b a \\
+\kannada{ತಿರುಗಿಸು} & rot & a b c -- b c a \\
+\bottomrule
+\end{tabular}
+
+\section{Word Definitions}
+
+Words (functions) are defined with the colon-double-danda syntax:
+
+\begin{lstlisting}
+// Define a word
+square: dup * ||
+
+// Use it
+5 square print.    // 25
+\end{lstlisting}
+
+In Kannada:
+\begin{verbatim}
+\end{verbatim}
+\kannada{ವರ್ಗ: ನಕಲು ಗುಣಿಸು ॥}\\
+\kannada{೫ ವರ್ಗ ಮುದ್ರಿಸು.} \quad // 25
+
+\section{Variables}
+
+\begin{lstlisting}
+x := 10.           // Assign
+x print.           // Use
+\end{lstlisting}
+
+\section{Lists}
+
+\begin{lstlisting}
+[1 2 3]            // List literal
+[1 2 3] length.    // 3
+[1 2 3] first.     // 1
+\end{lstlisting}
+
+In Kannada:\\
+\kannada{[೧ ೨ ೩] ಉದ್ದ ಮುದ್ರಿಸು.} \quad // 3
+
+% ============================================================
+\chapter{Code Generation}
+% ============================================================
+
+\section{Overview}
+
+Kapila compiles to C code, which is then compiled to native executables using TinyCC or GCC.
+
+\begin{verbatim}
+Kapila Source --> C Code --> C Compiler --> Executable
+   (.kpl)                     (tcc/gcc)      (.exe)
+\end{verbatim}
+
+\section{Why C Instead of LLVM?}
+
+\begin{tabular}{lll}
+\toprule
+Aspect & C Backend & LLVM Backend \\
+\midrule
+Complexity & \textasciitilde300 lines & \textasciitilde1000+ lines \\
+Dependencies & Just tcc/gcc & llvmlite + LLVM (\textasciitilde500MB) \\
+Debugging & Read the .c file & Binary IR \\
+Distribution & 18MB & 500MB+ \\
+\bottomrule
+\end{tabular}
+
+\section{Generated Code Structure}
+
+For the Kapila program:
+\begin{verbatim}
+\end{verbatim}
+\kannada{ವರ್ಗ: ನಕಲು ಗುಣಿಸು ॥}\\
+\kannada{೫ ವರ್ಗ ಮುದ್ರಿಸು.}
+
+\vspace{0.3cm}
+The generator produces:
+
+\begin{lstlisting}[language=C]
+/* Generated by Kapila Compiler */
+#include "kapila.h"
+
+void word_varga(void) {
+    dup_op();
+    mul_op();
+}
+
+int main() {
+    kapila_init();
+
+    push_int(5);
+    word_varga();
+    println_op();
+
+    kapila_cleanup();
+    return 0;
+}
+\end{lstlisting}
+
+\section{Runtime Library}
+
+The runtime library (\texttt{runtime/kapila.h} and \texttt{runtime/kapila.c}) provides:
+
+\begin{itemize}
+    \item Value type with union (int, float, bool, string, list)
+    \item Stack operations (push, pop, peek)
+    \item Arithmetic operations
+    \item Comparison operations (with float support)
+    \item String operations (UTF-8 aware length)
+    \item List operations
+    \item Memory management (arena allocator)
+\end{itemize}
+
+% ============================================================
+\chapter{The Kapila Compiler}
+% ============================================================
+
+\section{Usage}
+
+\begin{lstlisting}[language=bash]
+# Show version
+kapilac -v
+
+# Compile and run
+kapilac program.kpl -r
+
+# Output C code
+kapilac program.kpl -o output.c
+
+# Compile from string
+kapilac -c '5 3 + print.'
+\end{lstlisting}
+
+\section{Command-Line Options}
+
+\begin{tabular}{ll}
+\toprule
+Option & Description \\
+\midrule
+\texttt{input.kpl} & Input source file \\
+\texttt{-o FILE} & Output C file \\
+\texttt{-r, --run} & Compile and run \\
+\texttt{-c CODE} & Compile from string \\
+\texttt{-k, --keep} & Keep temporary files \\
+\texttt{-v, --version} & Show version \\
+\bottomrule
+\end{tabular}
+
+\section{Bundled TinyCC}
+
+The standalone distribution includes TinyCC (Tiny C Compiler):
+
+\begin{itemize}
+    \item Size: \textasciitilde1MB (vs GCC's 500MB+)
+    \item Fast compilation
+    \item No external dependencies
+\end{itemize}
+
+\section{Distribution Structure}
+
+\begin{verbatim}
+kapila/
+  kapilac.exe     # Compiler
+  kapila.exe      # REPL/Interpreter
+  runtime/        # C runtime library
+    kapila.h
+    kapila.c
+  tcc/            # Bundled TinyCC
+  examples/       # Sample programs
+\end{verbatim}
+
+% ============================================================
+\chapter{Future: LLVM Backend}
+% ============================================================
+
+\textbf{Status: PLANNED -- Not yet implemented}
+
+\section{Motivation}
+
+A future version may include an LLVM backend for:
+
+\begin{itemize}
+    \item Advanced optimizations (-O3, LTO)
+    \item JIT compilation for REPL
+    \item WebAssembly output
+    \item Full debug information
+\end{itemize}
+
+\section{Proposed Architecture}
+
+\begin{verbatim}
+                kapilac
+                   |
+            +------+------+
+            |             |
+            v             v
+      +---------+   +-----------+
+      | C Back- |   | LLVM Back-|
+      | end     |   | end       |
+      +---------+   +-----------+
+            |             |
+            v             v
+         tcc/gcc        LLVM
+            |             |
+            v             v
+         .exe         .exe/.wasm
+\end{verbatim}
+
+\section{LLVM IR Example}
+
+For \kannada{೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.}, the LLVM IR would be:
+
+\begin{lstlisting}
+define i32 @main() {
+entry:
+    call void @push_int(i64 5)
+    call void @push_int(i64 3)
+    call void @add_op()
+    call void @println_op()
+    call void @kapila_cleanup()
+    ret i32 0
+}
+\end{lstlisting}
+
+% ============================================================
+\chapter{Quick Reference}
+% ============================================================
+
+\section{Syntax Cheatsheet}
+
+\begin{lstlisting}
+// Statement endings
+statement.           // End with period
+word: body ||        // Word definition ends with ||
+
+// Assignment
+x := 10.
+
+// Arithmetic (postfix)
+5 3 +               // 8
+\end{lstlisting}
+
+\section{Kannada Vocabulary}
+
+\subsection{Arithmetic}
+\begin{tabular}{ll}
+\kannada{ಕೂಡು} & add \\
+\kannada{ಕಳೆ} & subtract \\
+\kannada{ಗುಣಿಸು} & multiply \\
+\kannada{ಭಾಗಿಸು} & divide \\
+\end{tabular}
+
+\subsection{Comparison}
+\begin{tabular}{ll}
+\kannada{ಕಿರಿದು} & less than \\
+\kannada{ಹಿರಿದು} & greater than \\
+\kannada{ಸಮ} & equal \\
+\end{tabular}
+
+\subsection{Stack}
+\begin{tabular}{ll}
+\kannada{ನಕಲು} & dup \\
+\kannada{ಬಿಡು} & drop \\
+\kannada{ಅದಲುಬದಲು} & swap \\
+\end{tabular}
+
+\subsection{I/O}
+\begin{tabular}{ll}
+\kannada{ಮುದ್ರಿಸು} & print \\
+\kannada{ಉದ್ದ} & length \\
+\kannada{ಮೊದಲ} & first \\
+\end{tabular}
+
+% ============================================================
+\chapter{Example Programs}
+% ============================================================
+
+\section{Hello World}
+
+\begin{verbatim}
+"Hello, World!" print.
+\end{verbatim}
+
+In Kannada:\\
+\kannada{"ನಮಸ್ಕಾರ ಪ್ರಪಂಚ!" ಮುದ್ರಿಸು.}
+
+\section{Square Function}
+
+\begin{verbatim}
+square: dup * ||
+5 square print.    // 25
+\end{verbatim}
+
+In Kannada:\\
+\kannada{ವರ್ಗ: ನಕಲು ಗುಣಿಸು ॥}\\
+\kannada{೫ ವರ್ಗ ಮುದ್ರಿಸು.}
+
+\section{Arithmetic Report}
+
+\begin{verbatim}
+// Header
+"=== Calculation ===" print.
+
+// Operations
+12 8 + print.      // 20
+7 6 * print.       // 42
+
+// Using words
+double: 2 * ||
+5 double print.    // 10
+
+"Done!" print.
+\end{verbatim}
+
+% ============================================================
+\appendix
+\chapter{Installation}
+% ============================================================
+
+\section{Standalone Distribution}
+
+\begin{enumerate}
+    \item Download \texttt{kapila-windows-x64.zip} from GitHub Releases
+    \item Extract to any folder
+    \item Run \texttt{kapilac.exe} or \texttt{kapila.exe}
+\end{enumerate}
+
+No Python or C compiler installation required.
+
+\section{From Source}
+
+\begin{lstlisting}[language=bash]
+git clone https://github.com/hebbarp/kapila
+cd kapila
+python kapila.py           # REPL
+python kapilac.py file.kpl -r  # Compile & run
+\end{lstlisting}
+
+Requirements: Python 3.10+, GCC or TinyCC
+
+% ============================================================
+\chapter{License and Credits}
+% ============================================================
+
+\section{Author}
+
+\textbf{Architect and Author:} Prashanth Hebbar (\texttt{hebbarp@gmail.com})
+
+\textbf{Co-Authored By:} Claude Opus 4.5
+
+\section{Repository}
+
+\url{https://github.com/hebbarp/kapila}
+
+\section{Acknowledgments}
+
+\begin{itemize}
+    \item Named after Kapila, the ancient Vedic sage
+    \item Unicode handling adapted from Pampa project
+    \item TinyCC by Fabrice Bellard
+\end{itemize}
+
+\end{document}

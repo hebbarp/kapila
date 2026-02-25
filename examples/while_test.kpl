@@ -1,0 +1,4 @@
+// While loop test
+i := 0.
+[ i 5 < ] [ i ಮುದ್ರಿಸು. i := i + 1. ] while.
+"done" ಮುದ್ರಿಸು.
