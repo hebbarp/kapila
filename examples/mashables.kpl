@@ -1,0 +1,17 @@
+// ಮ್ಯಾಶಬಲ್ಸ್ — ಸುದ್ದಿ, ಹವಾಮಾನ, ವಿಕಿ
+// Mashables: news, weather and Wikipedia in a few words.
+// A run may make at most 5 source calls; this example makes exactly 5.
+
+// ಹುಬ್ಬಳ್ಳಿಯ ಹವಾಮಾನ — weather in Hubballi
+"ಹುಬ್ಬಳ್ಳಿ" ಹವಾಮಾನ ಮುದ್ರಿಸು.
+
+// ಮಳೆ ಸುದ್ದಿ: ಮೊದಲ ಮೂರು ಶೀರ್ಷಿಕೆಗಳು — the first three rain headlines
+ಸುದ್ದಿಗಳು := "ಮಳೆ" ಸುದ್ದಿ ೩ ತೆಗೆದುಕೊ.
+ಸುದ್ದಿಗಳ ಶೀರ್ಷಿಕೆ ಮುದ್ರಿಸು.
+
+// ಕುವೆಂಪು ಬಗ್ಗೆ ವಿಕಿ — Wikipedia on Kuvempu
+ಕವಿ := "ಕುವೆಂಪು" ವಿಕಿ.
+ಕವಿಯ ಸಾರಾಂಶ ಮುದ್ರಿಸು.
+
+// ಎಲ್ಲಿ ಮಳೆ? — where is it raining right now?
+[ "ಮಂಗಳೂರು" "ಮೈಸೂರು" ] [ ಹವಾಮಾನ ] ನಕ್ಷೆ [ "ಮಳೆ" ಪಡೆ ೦ > ] ಸೋಸು "ಸ್ಥಳ" ಪಡೆ ಮುದ್ರಿಸು.

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}: ಕಪಿಲ wiki</title>
+    <meta name="description" content="How Kapila is being built: compiler roadmap, build status and development log.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiro+Kannada&family=Noto+Sans+Kannada:wght@400;600&family=Hanken+Grotesk:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --indigo: #1E2463; --indigo-deep: #141848; --kumkum: #B81D2A; --turmeric: #EDB120;
+            --chalk: #F1F3F9; --paper: #FCFDFF; --ink: #1A1D3F; --ink-soft: #4B5078; --line: #D3D7E6;
+            --on-indigo-soft: #B6BBDE;
+            --display: 'Tiro Kannada', 'Noto Sans Kannada', serif;
+            --body: 'Hanken Grotesk', 'Noto Sans Kannada', 'Tunga', sans-serif;
+            --code: 'JetBrains Mono', 'Noto Sans Kannada', 'Tunga', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--body); font-size: 1.0625rem; line-height: 1.65; color: var(--ink); background: var(--chalk); }
+        :focus-visible { outline: 3px solid var(--turmeric); outline-offset: 2px; }
+        .top { background: var(--indigo); }
+        .top nav { max-width: 1200px; margin: 0 auto; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .top a { color: var(--on-indigo-soft); text-decoration: none; }
+        .top a:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+        .top .brand { font-family: var(--display); font-size: 1.5rem; color: #fff; }
+        .top ul { display: flex; gap: 28px; list-style: none; }
+        .band { height: 18px; background: var(--indigo-deep) url('../static/kasuti.svg') repeat-x center; background-size: auto 18px; }
+
+        .layout { max-width: 1200px; margin: 0 auto; padding: 40px 32px 72px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
+        aside ul { list-style: none; position: sticky; top: 24px; }
+        aside a { display: block; padding: 6px 0 6px 12px; color: var(--ink-soft); text-decoration: none; border-left: 3px solid var(--line); }
+        aside a:hover { color: var(--ink); }
+        aside a[aria-current="page"] { color: var(--ink); font-weight: 600; border-left-color: var(--kumkum); }
+
+        article { max-width: 46rem; min-width: 0; }
+        article h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2.1rem, 4vw, 2.9rem); line-height: 1.2; margin-bottom: 16px; }
+        article h2 { font-size: 1.4rem; font-weight: 600; margin: 36px 0 8px; }
+        article p, article ul, article ol, article pre, article .table { margin-top: 12px; }
+        article ul, article ol { padding-left: 1.3em; }
+        article li { margin-top: 4px; }
+        article a { color: var(--indigo); }
+        article code { font-family: var(--code); font-size: 0.9em; background: #E4E7F2; padding: 1px 5px; border-radius: 3px; overflow-wrap: anywhere; }
+        article pre { background: var(--indigo-deep); color: #E8EAF7; padding: 14px 16px; border-radius: 4px; overflow-x: auto; }
+        article pre code { background: none; padding: 0; color: inherit; overflow-wrap: normal; }
+        .table { overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+        th { text-align: left; font-weight: 600; }
+        td:first-child code { white-space: nowrap; overflow-wrap: normal; }
+        th, td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+
+        @media (max-width: 800px) {
+            .layout { grid-template-columns: 1fr; gap: 24px; padding: 24px 16px 56px; }
+            .top nav { padding: 14px 16px; }
+            aside ul { position: static; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+            aside a { padding: 4px 0; border-left: 0; border-bottom: 3px solid transparent; }
+            aside a[aria-current="page"] { border-bottom-color: var(--kumkum); }
+        }
+    </style>
+</head>
+<body>
+    <header class="top">
+        <nav aria-label="Main">
+            <a class="brand" href="../">ಕಪಿಲ</a>
+            <ul>
+                <li><a href="../#get">Download</a></li>
+                <li><a href="../play">Playground</a></li>
+                <li><a href="Home">Wiki</a></li>
+                <li><a href="https://github.com/hebbarp/kapila">GitHub</a></li>
+            </ul>
+        </nav>
+        <div class="band" aria-hidden="true"></div>
+    </header>
+    <div class="layout">
+        <aside aria-label="Wiki pages">
+            <ul>
+                {% for slug, label in pages %}
+                <li><a href="{{ slug }}"{% if slug == current %} aria-current="page"{% endif %}>{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </aside>
+        <article>{{ body|safe }}</article>
+    </div>
+</body>
+</html>

@@ -13,10 +13,17 @@ import threading
 import time
 import uuid
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory
 
 # Ensure project root is on the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    import markdown
+except ImportError:      # the wiki degrades; the rest of the site must not
+    markdown = None
+
+from markupsafe import escape
 
 from src.vm import VM, KapilaError
 
@@ -33,7 +40,7 @@ app = Flask(__name__)
 app.config["APPLICATION_ROOT"] = PREFIX or "/"
 
 MAX_CODE_LENGTH = 5000
-EXECUTION_TIMEOUT = 5  # seconds
+EXECUTION_TIMEOUT = 15  # seconds; mashable sources wait on the network
 
 # ---------------------------------------------------------------------------
 # Session-based VM pool for Sandarbha (context-aware) mode
@@ -60,7 +67,7 @@ def _cleanup_sessions():
 # ---------------------------------------------------------------------------
 EXAMPLES = {}
 EXAMPLE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "examples")
-EXAMPLE_FILES = ["hello.kpl", "basics.kpl", "list_test.kpl", "runtime_test.kpl"]
+EXAMPLE_FILES = ["hello.kpl", "basics.kpl", "list_test.kpl", "runtime_test.kpl", "mashables.kpl"]
 
 for fname in EXAMPLE_FILES:
     path = os.path.join(EXAMPLE_DIR, fname)
@@ -69,12 +76,77 @@ for fname in EXAMPLE_FILES:
             EXAMPLES[fname] = f.read()
 
 
+def _client_id():
+    """Who to rate-limit for mashable sources. nginx sets X-Real-IP; gunicorn
+    listens on loopback only, so the header can't be supplied from outside."""
+    return request.headers.get("X-Real-IP") or request.remote_addr
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+GUI_FILE = "kapila-gui-windows-x64.exe"
+
+
+def _gui_size_mb():
+    try:
+        return f"{os.path.getsize(os.path.join(STATIC_DIR, 'downloads', GUI_FILE)) / 1e6:.0f}"
+    except OSError:
+        return None
+
+
 @app.route("/")
+def landing():
+    return render_template("landing.html", gui_size_mb=_gui_size_mb())
+
+
+@app.route("/play")
 def index():
     return render_template("index.html")
+
+
+@app.route("/download/windows")
+def download_windows():
+    return send_from_directory(
+        os.path.join(STATIC_DIR, "downloads"), GUI_FILE, as_attachment=True
+    )
+
+
+# (slug, sidebar label); a page must be listed here to be served.
+WIKI_PAGES = [
+    ("Home", "Home"),
+    ("Compiler-Roadmap", "Compiler roadmap"),
+    ("Build-Status", "Build status"),
+    ("Development-Log", "Development log"),
+    ("Building", "Building Kapila"),
+]
+WIKI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wiki")
+
+
+@app.route("/wiki")
+def wiki_home():
+    # Relative, so it works behind a URL prefix.
+    return redirect("wiki/Home")
+
+
+@app.route("/wiki/<page>")
+def wiki_page(page):
+    labels = dict(WIKI_PAGES)
+    if page not in labels:
+        abort(404)
+    try:
+        with open(os.path.join(WIKI_DIR, page + ".md"), encoding="utf-8") as f:
+            source = f.read()
+    except OSError:
+        abort(404)
+    if markdown is None:
+        body = f"<pre>{escape(source)}</pre>"
+    else:
+        body = markdown.markdown(source, extensions=["tables", "fenced_code", "sane_lists"])
+    # Wide tables scroll inside the page rather than widening it.
+    body = body.replace("<table>", '<div class="table"><table>').replace("</table>", "</table></div>")
+    return render_template("wiki.html", title=labels[page], pages=WIKI_PAGES, current=page, body=body)
 
 
 @app.route("/examples")
@@ -100,27 +172,33 @@ def run_code():
         })
 
     # Run in a separate thread with timeout
-    result = {"output": "", "stack": "[]", "error": None}
+    result = {"output": "", "stack": "[]", "error": None, "trace": [], "trace_dropped": 0}
+    client_id = _client_id()
 
     def execute():
+        vm = VM(sandbox=True)
+        vm.client_id = client_id
+        vm.trace = []          # record the steps: words run and requests sent
+        capture = io.StringIO()
         try:
-            vm = VM()
-            capture = io.StringIO()
             with contextlib.redirect_stdout(capture):
                 vm.run(code)
-            result["output"] = capture.getvalue()
             result["stack"] = repr(vm.stack)
         except KapilaError as e:
             result["error"] = str(e)
         except Exception as e:
             result["error"] = str(e)
+        finally:
+            result["output"] = capture.getvalue()
+            result["trace"] = vm.trace
+            result["trace_dropped"] = vm.trace_dropped
 
     thread = threading.Thread(target=execute, daemon=True)
     thread.start()
     thread.join(timeout=EXECUTION_TIMEOUT)
 
     if thread.is_alive():
-        result["error"] = "ಸಮಯ ಮೀರಿದೆ (timeout): execution exceeded 5 seconds"
+        result["error"] = f"ಸಮಯ ಮೀರಿದೆ (timeout): execution exceeded {EXECUTION_TIMEOUT} seconds"
 
     return jsonify(result)
 
@@ -149,7 +227,7 @@ def nl_to_code():
 
     def execute():
         try:
-            vm = VM()
+            vm = VM(sandbox=True)
             capture = io.StringIO()
             with contextlib.redirect_stdout(capture):
                 vm.run(code)
@@ -213,11 +291,12 @@ def run_sandarbha():
             oldest = min(SESSIONS, key=lambda s: SESSIONS[s].get("last_used", 0))
             SESSIONS.pop(oldest, None)
         session_id = str(uuid.uuid4())
-        session = {"vm": VM(enable_sandarbha=True), "history": []}
+        session = {"vm": VM(enable_sandarbha=True, sandbox=True), "history": []}
         SESSIONS[session_id] = session
 
     session["last_used"] = time.time()
     vm = session["vm"]
+    vm.client_id = _client_id()
 
     result = {"output": "", "stack": "[]", "context": {}, "error": None}
 
@@ -244,7 +323,7 @@ def run_sandarbha():
     thread.join(timeout=EXECUTION_TIMEOUT)
 
     if thread.is_alive():
-        result["error"] = "ಸಮಯ ಮೀರಿದೆ (timeout): execution exceeded 5 seconds"
+        result["error"] = f"ಸಮಯ ಮೀರಿದೆ (timeout): execution exceeded {EXECUTION_TIMEOUT} seconds"
 
     session["history"].append({"code": code, "output": result["output"]})
     result["session_id"] = session_id

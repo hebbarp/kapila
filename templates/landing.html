@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಕಪಿಲ Kapila: program in Kannada</title>
+    <meta name="description" content="Kapila (ಕಪಿಲ) is a programming language you write in Kannada. Try it in your browser or download the desktop app for Windows.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ಕಪಿಲ Kapila">
+    <meta property="og:title" content="ಕಪಿಲ Kapila: program in Kannada">
+    <meta property="og:description" content="An Indic-language programming platform: write programs in Kannada, and mash up live news, weather and Wikipedia in a few words.">
+    <meta property="og:url" content="https://kapila.matsyaai.com/">
+    <meta property="og:image" content="https://kapila.matsyaai.com/static/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Kapila: an Indic-language programming platform, with Kannada code examples">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ಕಪಿಲ Kapila: program in Kannada">
+    <meta name="twitter:description" content="Write programs in Kannada. Live news, weather and Wikipedia in a few words.">
+    <meta name="twitter:image" content="https://kapila.matsyaai.com/static/og.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiro+Kannada&family=Noto+Sans+Kannada:wght@400;600&family=Hanken+Grotesk:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --indigo: #1E2463;
+            --indigo-deep: #141848;
+            --kumkum: #B81D2A;
+            --turmeric: #EDB120;
+            --chalk: #F1F3F9;
+            --paper: #FCFDFF;
+            --ink: #1A1D3F;
+            --ink-soft: #4B5078;
+            --line: #D3D7E6;
+            --on-indigo: #E8EAF7;
+            --on-indigo-soft: #B6BBDE;
+            --output: #BFE8CC;
+            --error: #FFC2B8;
+            --display: 'Tiro Kannada', 'Noto Sans Kannada', serif;
+            --body: 'Hanken Grotesk', 'Noto Sans Kannada', 'Tunga', sans-serif;
+            --code: 'JetBrains Mono', 'Noto Sans Kannada', 'Tunga', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--body); font-size: 1.0625rem; line-height: 1.6; color: var(--ink); background: var(--chalk); }
+        a { color: inherit; }
+        :focus-visible { outline: 3px solid var(--turmeric); outline-offset: 2px; }
+        .wrap { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+
+        /* Hero */
+        .hero { background: var(--indigo); color: var(--on-indigo); }
+        nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; flex-wrap: wrap; }
+        nav .brand { font-family: var(--display); font-size: 1.5rem; text-decoration: none; color: var(--on-indigo); }
+        nav ul { display: flex; gap: 28px; list-style: none; }
+        nav ul a { text-decoration: none; color: var(--on-indigo-soft); }
+        nav ul a:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+
+        .hero-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 56px; align-items: center; padding-top: 40px; padding-bottom: 64px; }
+        .wordmark { font-family: var(--display); font-weight: 400; font-size: clamp(6.5rem, 15vw, 12.5rem); line-height: 1.1; color: #fff; }
+        .lede-kn { font-family: var(--display); font-size: clamp(1.6rem, 2.6vw, 2.1rem); line-height: 1.35; color: #fff; margin-top: 4px; }
+        .lede { color: var(--on-indigo); margin-top: 14px; max-width: 30rem; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+        .btn { display: inline-block; padding: 12px 22px; border-radius: 4px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; border: 2px solid transparent; }
+        .btn-primary { background: var(--turmeric); color: var(--ink); }
+        .btn-primary:hover { background: #F7C344; }
+        .btn-ghost { border-color: var(--on-indigo-soft); color: #fff; }
+        .btn-ghost:hover { border-color: #fff; }
+        .fineprint { font-size: 0.875rem; color: var(--on-indigo-soft); margin-top: 12px; }
+
+        /* Playground panel */
+        .panel { background: var(--paper); color: var(--ink); border-radius: 6px; overflow: hidden; box-shadow: 0 24px 60px rgba(8, 10, 45, .45); min-width: 0; }
+        .tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); }
+        .tabs button { font: inherit; font-size: 0.95rem; background: none; border: 0; border-bottom: 3px solid transparent; padding: 7px 11px 8px; color: var(--ink-soft); cursor: pointer; }
+        .tabs button:hover { color: var(--ink); }
+        .tabs button[aria-pressed="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--kumkum); }
+        #code { display: block; width: 100%; height: 148px; resize: vertical; border: 0; background: var(--paper); color: var(--ink); font-family: var(--code); font-size: 1.05rem; line-height: 1.7; padding: 16px 18px; }
+        #code:focus-visible { outline-offset: -3px; }
+        .run-row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+        #run { background: var(--kumkum); color: #fff; padding: 8px 22px; }
+        #run:hover { background: #9E1722; }
+        #run:disabled { opacity: .6; cursor: progress; }
+        .run-row .hint { font-size: 0.875rem; color: var(--ink-soft); }
+        .run-row a { margin-left: auto; font-size: 0.95rem; }
+        #output { background: var(--indigo-deep); color: var(--output); font-family: var(--code); font-size: 0.95rem; line-height: 1.65; padding: 16px 18px; height: 196px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+        #output.empty { color: var(--on-indigo-soft); }
+        #output.failed { color: var(--error); }
+
+        /* The band: drawn once, on load */
+        .band { height: 54px; background: var(--indigo-deep) url('static/kasuti.svg') repeat-x center; animation: stitch 1.4s ease-out both; }
+        @keyframes stitch { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+        /* Sections */
+        section { padding: 72px 0 8px; }
+        section:last-of-type { padding-bottom: 72px; }
+        h2 { font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 3.4vw, 2.75rem); line-height: 1.25; }
+        .h2-en { color: var(--ink-soft); font-size: 1.15rem; margin-top: 2px; }
+
+        .reads { margin-top: 28px; border-top: 1px solid var(--line); }
+        .reads div { display: grid; grid-template-columns: 7fr 5fr; gap: 32px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+        .reads code { font-family: var(--code); font-size: 1.1rem; overflow-wrap: anywhere; }
+        .reads span { color: var(--ink-soft); }
+
+        .get { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; margin-top: 32px; }
+        h3 { font-size: 1.2rem; font-weight: 600; }
+        .get p, .inside p { margin-top: 6px; color: var(--ink-soft); max-width: 34rem; }
+        .get .btn { margin-top: 14px; background: var(--indigo); color: #fff; }
+        .get .btn:hover { background: var(--indigo-deep); }
+        .get .note { font-size: 0.925rem; margin-top: 14px; }
+        pre { font-family: var(--code); font-size: 0.875rem; line-height: 1.7; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; margin-top: 14px; overflow-x: auto; }
+
+        .inside { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 64px; margin-top: 32px; }
+        .inside a { color: var(--ink); }
+
+        footer { background: var(--indigo); color: var(--on-indigo-soft); padding: 28px 0; font-size: 0.95rem; }
+        footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        footer b { font-family: var(--display); font-weight: 400; font-size: 1.15rem; color: #fff; }
+
+        @media (max-width: 920px) {
+            .hero-grid { grid-template-columns: 1fr; gap: 36px; padding-bottom: 48px; }
+            .get { grid-template-columns: 1fr; gap: 36px; }
+            .inside { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 560px) {
+            .wrap { padding: 0 16px; }
+            nav ul { gap: 18px; }
+            .reads div { grid-template-columns: 1fr; gap: 4px; }
+            .run-row a { margin-left: 0; }
+            section { padding-top: 56px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .band { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="wrap">
+            <nav aria-label="Main">
+                <a class="brand" href="./">ಕಪಿಲ</a>
+                <ul>
+                    <li><a href="#get">Download</a></li>
+                    <li><a href="play">Playground</a></li>
+                    <li><a href="wiki">Wiki</a></li>
+                    <li><a href="https://github.com/hebbarp/kapila">GitHub</a></li>
+                </ul>
+            </nav>
+            <div class="hero-grid">
+                <div>
+                    <h1 class="wordmark">ಕಪಿಲ</h1>
+                    <p class="lede-kn">ಕನ್ನಡದಲ್ಲೇ ಪ್ರೋಗ್ರಾಮ್ ಬರೆಯಿರಿ.</p>
+                    <p class="lede">Kapila is a programming language you write in Kannada. Values come first and the verb comes last, just as in a Kannada sentence. Live news, weather and Wikipedia are one word away.</p>
+                    <div class="actions">
+                        <a class="btn btn-primary" href="download/windows">Download for Windows</a>
+                        <a class="btn btn-ghost" href="play">Open the full playground</a>
+                    </div>
+                    <p class="fineprint">{% if gui_size_mb %}{{ gui_size_mb }} MB, {% endif %}Windows 10 or later. Nothing to install.</p>
+                </div>
+
+                <div class="panel" aria-label="Try Kapila">
+                    <div class="tabs" id="tabs"></div>
+                    <label for="code" hidden>Kapila program</label>
+                    <textarea id="code" spellcheck="false" maxlength="5000"></textarea>
+                    <div class="run-row">
+                        <button class="btn" id="run">ಓಡಿಸು</button>
+                        <span class="hint">Run with Ctrl+Enter</span>
+                        <a href="play" id="open-full">Open in full playground</a>
+                    </div>
+                    <div id="output" class="empty" role="status" aria-live="polite">ಓಡಿಸು ಒತ್ತಿ. Press ಓಡಿಸು to run this program, or change it first.</div>
+                </div>
+            </div>
+        </div>
+        <div class="band" aria-hidden="true"></div>
+    </div>
+
+    <main class="wrap">
+        <section>
+            <h2>ಕನ್ನಡದಂತೆಯೇ ಓದಬಹುದು</h2>
+            <p class="h2-en">Programs read like Kannada</p>
+            <div class="reads">
+                <div><code>೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.</code><span>Five and three: add them, print the result.</span></div>
+                <div><code>ವರ್ಗ: ನಕಲು ಗುಣಿಸು ॥</code><span>Teach it a new word. To square is to copy, then multiply.</span></div>
+                <div><code>"ಮೈಸೂರು" ಹವಾಮಾನ ಸ್ಥಿತಿ ಮುದ್ರಿಸು.</code><span>Mysuru's weather: print the sky's condition.</span></div>
+                <div><code>"ವಾಣಿಜ್ಯ" ಸುದ್ದಿ ೩ ತೆಗೆದುಕೊ ಶೀರ್ಷಿಕೆ ಮುದ್ರಿಸು.</code><span>Business news: take three, print the headlines.</span></div>
+            </div>
+        </section>
+
+        <section id="get">
+            <h2>ಕಪಿಲವನ್ನು ಪಡೆಯಿರಿ</h2>
+            <p class="h2-en">Get Kapila</p>
+            <div class="get">
+                <div>
+                    <h3>Desktop editor for Windows</h3>
+                    <p>One file. Double-click it, write your program in the top window and press Run. Try things out in the window below it.</p>
+                    <a class="btn" href="download/windows">Download for Windows</a>
+                    <p class="note">The app isn't code-signed yet, so Windows may warn you about an unknown publisher. Choose More info, then Run anyway.</p>
+                </div>
+                <div>
+                    <h3>In your browser</h3>
+                    <p>The playground needs no setup. It shows your output and every step your program took, including each request it sent.</p>
+                    <a class="btn" href="play">Open the playground</a>
+                </div>
+                <div>
+                    <h3>From source</h3>
+                    <p>On Linux, macOS or Windows with Python 3:</p>
+<pre>git clone https://github.com/hebbarp/kapila
+cd kapila
+python kapila_gui.py</pre>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>ಒಳಗೆ ಏನಿದೆ</h2>
+            <p class="h2-en">What's inside</p>
+            <div class="inside">
+                <div>
+                    <h3>Live data in the language</h3>
+                    <p>ಸುದ್ದಿ, ಹವಾಮಾನ and ವಿಕಿ are ordinary words that return records. Filter them, sort them and combine them into something new.</p>
+                </div>
+                <div>
+                    <h3>A neural network built from scratch</h3>
+                    <p>PicoNN is Kapila's own small neural network library, with no outside machine-learning framework underneath.</p>
+                </div>
+                <div>
+                    <h3>Text handled by akshara</h3>
+                    <p>Pampa works on Indic text the way readers see it, one akshara at a time rather than one code point at a time.</p>
+                </div>
+                <div>
+                    <h3>Your language next</h3>
+                    <p>A language-pack protocol is in the works, so anyone can fork Kapila into their own language. Follow along or help build it on <a href="https://github.com/hebbarp/kapila">GitHub</a>.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <span><b>ಕಪಿಲ</b>, by ಪ್ರಶಾಂತ್ ಹೆಬ್ಬಾರ್</span>
+            <a href="https://github.com/hebbarp/kapila">github.com/hebbarp/kapila</a>
+        </div>
+    </footer>
+
+    <script>
+        const EXAMPLES = [
+            { name: 'ನಮಸ್ಕಾರ', code: '"ನಮಸ್ಕಾರ ಪ್ರಪಂಚ!" ಮುದ್ರಿಸು.' },
+            { name: 'ಲೆಕ್ಕ', code: 'ವರ್ಗ: ನಕಲು ಗುಣಿಸು ॥\n\n೧೨ ವರ್ಗ ಮುದ್ರಿಸು.\n[ ೧ ೨ ೩ ೪ ೫ ] [ ವರ್ಗ ] ನಕ್ಷೆ ಮುದ್ರಿಸು.' },
+            { name: 'ಹವಾಮಾನ', code: '"ಮೈಸೂರು" ಹವಾಮಾನ ಮುದ್ರಿಸು.' },
+            { name: 'ಸುದ್ದಿ', code: '"ವಾಣಿಜ್ಯ" ಸುದ್ದಿ ೩ ತೆಗೆದುಕೊ ಶೀರ್ಷಿಕೆ ಮುದ್ರಿಸು.' },
+            { name: 'ವಿಕಿ', code: '"ಕುವೆಂಪು" ವಿಕಿ ಸಾರಾಂಶ ಮುದ್ರಿಸು.' },
+        ];
+
+        const code = document.getElementById('code');
+        const output = document.getElementById('output');
+        const runBtn = document.getElementById('run');
+        const tabs = document.getElementById('tabs');
+
+        function select(i) {
+            code.value = EXAMPLES[i].code;
+            [...tabs.children].forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+        }
+
+        EXAMPLES.forEach((ex, i) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = ex.name;
+            b.addEventListener('click', () => { select(i); runProgram(); });
+            tabs.appendChild(b);
+        });
+        select(0);
+
+        function show(text, cls) {
+            output.className = cls;
+            output.textContent = text;
+            output.scrollTop = 0;
+        }
+
+        async function runProgram() {
+            if (runBtn.disabled) return;
+            runBtn.disabled = true;
+            show('ನಡೆಯುತ್ತಿದೆ…', 'empty');
+            try {
+                const resp = await fetch('run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code.value }),
+                });
+                const r = await resp.json();
+                if (r.error) {
+                    show((r.output ? r.output + '\n' : '') + 'ದೋಷ: ' + r.error, 'failed');
+                } else if (r.output) {
+                    show(r.output, '');
+                } else {
+                    show('ಮುದ್ರಿಸಲು ಏನೂ ಇಲ್ಲ. Nothing was printed. End a line with ಮುದ್ರಿಸು to see its value.', 'empty');
+                }
+            } catch (_) {
+                show('ಸರ್ವರ್ ಸಿಗಲಿಲ್ಲ. Could not reach the server. Check your connection and press ಓಡಿಸು again.', 'failed');
+            }
+            runBtn.disabled = false;
+        }
+
+        runBtn.addEventListener('click', runProgram);
+        code.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runProgram(); }
+        });
+        document.getElementById('open-full').addEventListener('click', (e) => {
+            e.currentTarget.href = 'play#code=' + encodeURIComponent(code.value);
+        });
+    </script>
+</body>
+</html>

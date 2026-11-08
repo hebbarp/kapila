@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Deploy Kapila Web Playground to 139.59.85.251 (Apache2)"""
+"""Deploy Kapila Web Playground to https://kapila.matsyaai.com (nginx -> gunicorn)"""
 
 import os
 import sys
 import time
+import subprocess
+
 import paramiko
 
 HOST = "139.59.85.251"
 USERNAME = "esumadmin"
-PASSWORD = "Esum@052025"
+SSH_KEY = os.path.expanduser("~/.ssh/id_ed25519")
+DOMAIN = "kapila.matsyaai.com"
+NGINX_SITE = f"/etc/nginx/sites-available/{DOMAIN}"
 REMOTE_PATH = "/var/www/kapilaweb"
 TEMP_PATH = "/tmp/kapila_deploy"
-APACHE_CONF = "/etc/apache2/sites-enabled/matsya-le-ssl.conf"
 
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,6 +22,12 @@ LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES = [
     "app.py",
     "templates/index.html",
+    "templates/landing.html",
+    "templates/wiki.html",
+    "static/og.png",
+    "static/kasuti.svg",
+    "static/downloads/kapila-gui-windows-x64.exe",
+    "lib/prelude.kpl",
     # src package
     "src/__init__.py",
     "src/vocabulary.py",
@@ -36,6 +45,9 @@ FILES = [
     "src/vm/__init__.py",
     "src/vm/vm.py",
     "src/vm/builtins.py",
+    "src/vm/records.py",
+    "src/vm/sources.py",
+    "src/vm/trace.py",
     # unicode
     "src/unicode/__init__.py",
     "src/unicode/kannada.py",
@@ -58,8 +70,10 @@ FILES = [
     "examples/basics.kpl",
     "examples/list_test.kpl",
     "examples/runtime_test.kpl",
+    "examples/mashables.kpl",
     # NL engine
     "nl_engine.py",
+    "nl_weights.json",
 ]
 
 # External dependencies to copy into the deploy
@@ -85,6 +99,10 @@ EXTERNAL_DEPS = [
 ]
 
 
+# Every wiki page, including the generated Build-Status.md
+FILES += sorted(f"wiki/{n}" for n in os.listdir(os.path.join(LOCAL_DIR, "wiki")) if n.endswith(".md"))
+
+
 def safe_print(msg):
     """Print with ASCII fallback for Windows console."""
     try:
@@ -96,14 +114,14 @@ def safe_print(msg):
 def connect():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(HOST, username=USERNAME, password=PASSWORD, timeout=30)
+    ssh.connect(HOST, username=USERNAME, key_filename=SSH_KEY, timeout=30)
     safe_print(f"Connected to {HOST}")
     return ssh
 
 
 def run(ssh, cmd, sudo=False):
     if sudo:
-        cmd = f"echo '{PASSWORD}' | sudo -S bash -c '{cmd}'"
+        cmd = f"sudo -n bash -c '{cmd}'"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
@@ -116,6 +134,9 @@ def run(ssh, cmd, sudo=False):
 
 
 def deploy():
+    safe_print("Regenerating the build status page...")
+    subprocess.run([sys.executable, os.path.join("tools", "build_status.py")], cwd=LOCAL_DIR)
+
     ssh = connect()
     sftp = ssh.open_sftp()
 
@@ -156,7 +177,6 @@ def deploy():
     wsgi_content = """import sys, os
 sys.path.insert(0, '/var/www/kapilaweb')
 os.chdir('/var/www/kapilaweb')
-os.environ['SCRIPT_NAME'] = '/kapila'
 from app import app as application
 
 # Pre-train NL engine during preload (before worker fork)
@@ -188,10 +208,13 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/kapilaweb
-Environment=SCRIPT_NAME=/kapila
 ExecStart=/usr/bin/python3 -m gunicorn --bind 127.0.0.1:5050 --workers 2 --timeout 120 --preload wsgi:application
 Restart=always
 RestartSec=5
+# Playground runs untrusted code; timed-out runs keep spinning in their
+# thread, so cap what the service can take from the shared box.
+CPUQuota=50%
+MemoryMax=512M
 StandardOutput=append:/var/log/kapila.log
 StandardError=append:/var/log/kapila.log
 
@@ -214,43 +237,7 @@ WantedBy=multi-user.target
     safe_print("\n[5/6] Installing dependencies & configuring...")
 
     # Install flask + gunicorn via apt
-    run(ssh, "apt install -y python3-flask gunicorn 2>/dev/null", sudo=True)
-
-    # Enable Apache proxy modules
-    run(ssh, "a2enmod proxy proxy_http 2>/dev/null", sudo=True)
-
-    # Add ProxyPass to matsya-le-ssl.conf if not already there
-    apache_check = run(ssh, f"grep -c kapila {APACHE_CONF} 2>/dev/null || echo 0")
-    if "0" in apache_check:
-        safe_print("  Adding Kapila proxy to Apache config...")
-        # Write a patch script to insert ProxyPass before </VirtualHost>
-        patch_script = f"""
-import re
-with open('{APACHE_CONF}', 'r') as f:
-    content = f.read()
-if 'kapila' not in content:
-    insert = '''
-    # Kapila Web Playground
-    ProxyPass /kapila/ http://127.0.0.1:5050/kapila/
-    ProxyPassReverse /kapila/ http://127.0.0.1:5050/kapila/
-
-'''
-    content = content.replace('</VirtualHost>', insert + '</VirtualHost>')
-    with open('{APACHE_CONF}', 'w') as f:
-        f.write(content)
-    print('Added Kapila proxy config')
-else:
-    print('Already configured')
-"""
-        # Upload and run the patch script
-        run(ssh, f"mkdir -p {TEMP_PATH}")
-        sftp2 = ssh.open_sftp()
-        with sftp2.open(f"{TEMP_PATH}/patch_apache.py", "w") as f:
-            f.write(patch_script)
-        sftp2.close()
-        run(ssh, f"python3 {TEMP_PATH}/patch_apache.py", sudo=True)
-    else:
-        safe_print("  Kapila proxy already in Apache config")
+    run(ssh, "apt install -y python3-flask python3-markdown gunicorn 2>/dev/null", sudo=True)
 
     # Install systemd service
     run(ssh, f"cp {REMOTE_PATH}/kapila.service /etc/systemd/system/kapila.service", sudo=True)
@@ -258,9 +245,20 @@ else:
     run(ssh, "systemctl enable kapila", sudo=True)
     run(ssh, "systemctl restart kapila", sudo=True)
 
-    # Test and reload Apache
-    run(ssh, "apache2ctl configtest 2>&1", sudo=True)
-    run(ssh, "systemctl reload apache2", sudo=True)
+    # nginx front proxy for the subdomain. Only installed the first time:
+    # certbot then rewrites the site file with the TLS server block.
+    exists = run(ssh, f"test -e {NGINX_SITE} && echo yes || echo no")
+    if exists == "no":
+        safe_print(f"  Installing nginx site for {DOMAIN}...")
+        sftp2 = ssh.open_sftp()
+        sftp2.put(os.path.join(LOCAL_DIR, "deploy", "kapila.nginx.conf"), f"{TEMP_PATH}/kapila.nginx.conf")
+        sftp2.close()
+        run(ssh, f"cp {TEMP_PATH}/kapila.nginx.conf {NGINX_SITE}", sudo=True)
+        run(ssh, f"ln -sf {NGINX_SITE} /etc/nginx/sites-enabled/{DOMAIN}", sudo=True)
+        run(ssh, "nginx -t 2>&1 && systemctl reload nginx", sudo=True)
+        run(ssh, f"certbot --nginx -d {DOMAIN} --non-interactive --redirect 2>&1 | tail -3", sudo=True)
+    else:
+        safe_print(f"  nginx site for {DOMAIN} already installed")
 
     # 6. Verify
     safe_print("\n[6/6] Verifying...")
@@ -271,12 +269,12 @@ else:
     time.sleep(3)
 
     run(ssh, "systemctl status kapila --no-pager 2>&1 | head -10", sudo=True)
-    run(ssh, "curl -s -o /dev/null -w 'HTTP %{http_code}' http://127.0.0.1:5050/kapila/ 2>/dev/null || echo 'waiting...'")
+    run(ssh, "curl -s -o /dev/null -w 'HTTP %{http_code}' http://127.0.0.1:5050/ 2>/dev/null || echo 'waiting...'")
 
     # Cleanup
     run(ssh, f"rm -rf {TEMP_PATH}")
 
-    safe_print(f"\nDone! Check: https://matsyaai.com/kapila")
+    safe_print(f"\nDone! Check: https://{DOMAIN}")
     ssh.close()
 
 

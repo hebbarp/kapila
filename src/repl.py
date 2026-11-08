@@ -7,13 +7,14 @@ Interactive Read-Eval-Print Loop for Kapila.
 """
 
 import sys
+from . import __version__
 from .vm import VM, KapilaError
 from .lexer import tokenize
 
 
 def repl():
     """Run the Kapila REPL."""
-    print("ಕಪಿಲ (Kapila) v0.1")
+    print(f"ಕಪಿಲ (Kapila) v{__version__}")
     print("A Kannada programming language")
     print("Type 'ನಿರ್ಗಮಿಸು' or 'exit' to quit, 'ಸಹಾಯ' or 'help' for help")
     print()

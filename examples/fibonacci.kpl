@@ -2,24 +2,10 @@
 // ಫಿಬೊನಾಚಿ ಸಂಖ್ಯೆಗಳು - Fibonacci Numbers
 // ============================================
 
-// ಫಿಬೊನಾಚಿ ಸಂಖ್ಯೆಯನ್ನು ಲೆಕ್ಕಹಾಕಿ
-// Calculate the nth Fibonacci number
-ಕಾರ್ಯ ಫಿಬೊನಾಚಿ(ಸಂಖ್ಯೆ n) → ಸಂಖ್ಯೆ {
-    ಆದರೆ (n <= ೧) {
-        ಹಿಂತಿರುಗಿಸು n
-    }
-    ಹಿಂತಿರುಗಿಸು ಫಿಬೊನಾಚಿ(n - ೧) + ಫಿಬೊನಾಚಿ(n - ೨)
-}
+// Recursive Fibonacci in Kapila's stack syntax.
+// The true branch leaves n unchanged; the false branch calculates fib(n-1)
+// and fib(n-2), then adds them.
+ಫಿಬೊನಾಚಿ: ನಕಲು ೧ <= [ ನಕಲು ಬಿಡು ] [ ನಕಲು ೧ - ಫಿಬೊನಾಚಿ ಅದಲುಬದಲು ೨ - ಫಿಬೊನಾಚಿ + ] ಆದರೆಇಲ್ಲ ॥
 
-// ಮುಖ್ಯ ಕಾರ್ಯ
-ಕಾರ್ಯ ಮುಖ್ಯ() {
-    ಸಂಖ್ಯೆ i = ೦
-
-    ತನಕ (i < ೧೦) {
-        ಸಂಖ್ಯೆ ಫಲಿತಾಂಶ = ಫಿಬೊನಾಚಿ(i)
-        ಮುದ್ರಿಸು(ಫಲಿತಾಂಶ)
-        i = i + ೧
-    }
-
-    ಹಿಂತಿರುಗಿಸು ೦
-}
+// Print fib(0) through fib(9).  `ಸಾರಿ` supplies the loop index.
+೧೦ [ ನಕಲು ಫಿಬೊನಾಚಿ ಮುದ್ರಿಸು ] ಸಾರಿ.

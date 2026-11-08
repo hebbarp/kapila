@@ -3,4 +3,4 @@
 
 a := 0.
 b := 1.
-10 [ a ಮುದ್ರಿಸು. temp := b. b := a + b. a := temp. ] times.
+10 [ a ಮುದ್ರಿಸು b temp := a b + b := temp a := ] times.

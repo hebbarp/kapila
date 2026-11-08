@@ -39,6 +39,9 @@ from .ast import (
 )
 
 
+from .ast import Sequence
+
+
 class ParseError(Exception):
     """Error during parsing."""
     def __init__(self, message: str, line: int = 0, column: int = 0):
@@ -233,9 +236,17 @@ class Parser:
         """Parse: name := expr."""
         name_token = self._advance()
         name = name_token.value
-        self._advance()  # skip :=
+        assign_line = self._advance().line  # skip :=
 
         value = self._expression()
+
+        rest = self._assignment_postfix(assign_line)
+        if rest:
+            value = Sequence(
+                items=[value] + rest,
+                line=value.line,
+                column=value.column
+            )
 
         self._match(TokenType.DOT)
 
@@ -245,6 +256,31 @@ class Parser:
             line=name_token.line,
             column=name_token.column
         )
+
+    def _assignment_postfix(self, line: int) -> list:
+        """The rest of a verb-last right-hand side: x := ೨ ೩ ಕೂಡು.
+
+        Only tokens on the := line count, matching the interpreter: older
+        programs end an assignment at the line break without a full stop.
+        """
+        starts_item = (
+            TokenType.NUMBER, TokenType.STRING, TokenType.WORD,
+            TokenType.LBRACKET, TokenType.LBRACE, TokenType.QUOTE,
+            TokenType.PLUS, TokenType.MINUS, TokenType.STAR,
+            TokenType.SLASH, TokenType.PERCENT,
+            TokenType.EQ, TokenType.NEQ, TokenType.LT,
+            TokenType.GT, TokenType.LTE, TokenType.GTE,
+        )
+        items = []
+        while not self._at_end():
+            token = self._peek()
+            if token.line != line or token.type not in starts_item:
+                break
+            if (token.type == TokenType.WORD and
+                    self._peek_next().type in (TokenType.COLON, TokenType.ASSIGN)):
+                break  # the next statement starts on this line
+            items.append(self._parse_body_element())
+        return items
 
     def _expr_stmt(self) -> ExprStmt:
         """Parse expression followed by optional postfix actions."""

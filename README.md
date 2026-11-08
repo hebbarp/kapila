@@ -1,118 +1,116 @@
 # ಕಪಿಲ (Kapila)
 
-A Kannada programming language that compiles to LLVM IR.
+Kapila is an experimental multilingual, stack-based programming language with
+Kannada at its center. It currently supports Kannada, Hindi (Devanagari),
+Telugu, and English vocabulary, including each script's native numerals.
 
-Named after **Kapila** (ಕಪಿಲ), the ancient Vedic sage who founded the Samkhya school of philosophy—one of the oldest systems of Indian philosophical inquiry that emphasized systematic enumeration and logical analysis.
+Kapila combines postfix execution with infix expressions and compiles programs
+to native executables through a C backend. An experimental LLVM IR backend is
+also included.
 
-## Vision
+## Status
 
-Previous attempts at Kannada programming languages translated Kannada keywords to English and used existing interpreters. Kapila takes a different approach:
+Kapila 0.8.0 is a functional alpha suitable for language experimentation and
+compiler education.
 
-- **Native compilation**: Kannada source → LLVM IR → Native machine code
-- **Cultural authenticity**: Explore whether Kannada's grammatical structure can inspire new programming constructs
-- **Educational**: Built as a learning journey through compiler construction
+- Interpreter and REPL: working
+- Kannada, Hindi, and Telugu vocabulary: working
+- Parser and AST: working
+- Type analysis: basic and intentionally lenient
+- C backend and native compilation: working
+- C runtime for arithmetic, strings, lists, files, and higher-order words: working
+- LLVM IR backend: experimental; variables, maps, lists, and conditionals are incomplete
+- Web playground: direct execution, Kannada natural-language input, and experimental
+  context-aware Sandarbha sessions
+- Automated tests: `unittest` and `pytest` regression coverage, including all
+  runnable examples and a native compiler smoke test
 
-## Project Structure
+The implementation explicitly supports three Indic scripts today. Supporting
+an additional language requires adding its Unicode rules and vocabulary; “any
+language” is an extension goal rather than an automatic capability.
 
-```
-kapila/
-├── docs/                    # Educational documentation
-│   ├── 00-overview.md       # The journey ahead
-│   ├── 01-lexical-analysis.md
-│   ├── 02-parsing.md
-│   ├── 03-semantic-analysis.md
-│   ├── 04-code-generation.md
-│   └── language-design.md   # Exploring Kannada-influenced features
-├── src/
-│   ├── unicode/             # Kannada script handling (from Pampa)
-│   ├── lexer/               # Tokenization
-│   ├── parser/              # AST construction
-│   ├── semantic/            # Type checking, symbol tables
-│   ├── codegen/             # LLVM IR generation
-│   └── kapila.py            # Main entry point
-├── examples/                # Sample Kapila programs
-├── tests/                   # Test suite
-└── tools/                   # Helper utilities
-```
+## Execution paths
 
-## Building a Language: The Phases
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     KAPILA COMPILATION PIPELINE                  │
-└─────────────────────────────────────────────────────────────────┘
-
-  ಕನ್ನಡ Source Code
-        │
-        ▼
-  ┌───────────┐     "ಕಾರ್ಯ ಮುಖ್ಯ()" → [KARYA, IDENTIFIER, LPAREN, RPAREN]
-  │   LEXER   │     Breaks source into tokens
-  └───────────┘
-        │
-        ▼
-  ┌───────────┐     Tokens → Abstract Syntax Tree
-  │  PARSER   │     Understands grammar structure
-  └───────────┘
-        │
-        ▼
-  ┌───────────┐     Type checking, scope resolution
-  │ SEMANTIC  │     Symbol table management
-  │ ANALYSIS  │
-  └───────────┘
-        │
-        ▼
-  ┌───────────┐     AST → LLVM Intermediate Representation
-  │  CODEGEN  │
-  └───────────┘
-        │
-        ▼
-  ┌───────────┐     LLVM IR → Native machine code
-  │   LLVM    │     (handled by LLVM toolchain)
-  └───────────┘
-        │
-        ▼
-    Executable
+```text
+Source ──► Lexer ──► Python stack VM
+   │
+   └─────► Parser ──► AST ──► C ──► gcc/clang/tcc ──► native executable
+                         │
+                         └──► LLVM IR (experimental)
 ```
 
-## Current Status
+Kapila processes Indic source directly; users do not need to rewrite programs
+with English keywords.
 
-✅ **Phase 1-2 Complete**: Lexer and Interpreter working
-✅ **Phase 3 Complete**: Parser and AST construction
-✅ **Phase 4 Complete**: Type system with Kannada type names
-✅ **Phase 5 Complete**: C code generation
+## Quick start
 
-See [TODO.md](TODO.md) for detailed roadmap.
+Requires Python 3.10 or newer.
 
-## Quick Start
+```powershell
+# Run a program with the interpreter
+python kapila.py examples/hello.kpl
 
-```bash
-# Start REPL
+# Start the REPL
 python kapila.py
 
-# Run a file
-python kapila.py examples/hello.kpl
+# Compile and run natively (requires gcc, clang, or tcc)
+python kapilac.py examples/hello.kpl -r
+
+# Show generated C or LLVM IR
+python kapilac.py examples/hello.kpl --emit-c
+python kapilac.py examples/hello.kpl --emit-llvm
+
+# Start the web playground
+python app.py
 ```
 
 ## Example
 
-```
+```kapila
 // Define a word
-square: dup * ॥
+ವರ್ಗ: ನಕಲು * ॥
 
-// Use it with infix math
+// Infix expression and postfix action
 x := ೫ * ೨.
-x square ಮುದ್ರಿಸು.    // prints 100
+x ವರ್ಗ ಮುದ್ರಿಸು.    // prints 100
 
 // Conditional
-x > ೫ ? [ "ದೊಡ್ಡ" ] [ "ಚಿಕ್ಕ" ] ಮುದ್ರಿಸು.
+x > ೫ ? [ "ದೊಡ್ಡ" ಮುದ್ರಿಸು ] [ "ಚಿಕ್ಕ" ಮುದ್ರಿಸು ].
 ```
 
-## Requirements
+Equivalent arithmetic can use another supported vocabulary:
 
-- Python 3.10+
-- LLVM 15+ (for future compilation)
-- llvmlite (Python bindings to LLVM)
+```kapila
+५ ३ जोड़ो छापो.          // Hindi: 8
+౫ ౩ కూడు ముద్రించు.      // Telugu: 8
+```
 
-## Acknowledgments
+## Tests
 
-- Unicode handling adapted from [Pampa: AdiLipi](../pampa), a prosody analyzer for Indic scripts
+```powershell
+python -m unittest discover -v
+python -m pytest -q
+```
+
+`file_processor.kpl` is excluded from the automatic example run because it
+requires a command-line filename. The other example programs are exercised by
+the regression suite.
+
+## Repository layout
+
+```text
+src/lexer/       tokenization
+src/parser/      AST and recursive-descent parser
+src/semantic/    types and type checker
+src/vm/          interpreter and built-ins
+src/codegen/     C and experimental LLVM backends
+src/unicode/     Kannada, Devanagari, and Telugu handling
+src/sandarbha/   experimental contextual role resolution
+runtime/         C runtime
+lib/             Kapila standard prelude
+examples/        runnable programs
+tests/           manual demonstrations and automated regressions
+docs/            design and compiler notes
+```
+
+See [TODO.md](TODO.md) for the remaining roadmap.

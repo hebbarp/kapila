@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ಕಪಿಲ Playground</title>
+    <meta name="description" content="Kapila (ಕಪಿಲ) — an Indic-language programming platform. Write programs in Kannada, mash up live news, weather and Wikipedia, with a neural network built from scratch.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ಕಪಿಲ Kapila">
+    <meta property="og:title" content="ಕಪಿಲ Kapila — program in Kannada">
+    <meta property="og:description" content="An Indic-language programming platform: write programs in Kannada, mash up live news, weather and Wikipedia, and build a language pack for your own language.">
+    <meta property="og:url" content="https://kapila.matsyaai.com/">
+    <meta property="og:image" content="https://kapila.matsyaai.com/static/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Kapila: an Indic-language programming platform, with Kannada code examples">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ಕಪಿಲ Kapila — program in Kannada">
+    <meta name="twitter:description" content="Write programs in Kannada. Live news, weather and Wikipedia in a few words. A neural network built from scratch.">
+    <meta name="twitter:image" content="https://kapila.matsyaai.com/static/og.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -32,6 +46,9 @@
             color: #e8922f;
             white-space: nowrap;
         }
+
+        .home-link { text-decoration: none; }
+        .home-link:focus-visible { outline: 2px solid #e8922f; outline-offset: 4px; border-radius: 4px; }
 
         header h1 span {
             color: #8899bb;
@@ -160,6 +177,26 @@
             font-size: 1.3rem; cursor: pointer;
         }
         .modal-close:hover { color: #e85555; }
+        .modal.welcome { max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .modal.welcome h2 { font-size: 1.45rem; margin-bottom: 4px; }
+        .modal.welcome .sub { color: #8ea2c8; font-size: 0.9rem; margin-bottom: 14px; }
+        .welcome-points { list-style: none; margin: 4px 0 14px; }
+        .welcome-points li { font-size: 0.88rem; margin-bottom: 10px; padding-left: 28px; position: relative; }
+        .welcome-points li span.ic { position: absolute; left: 0; top: 0; }
+        .welcome-points code {
+            display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 5px;
+            background: #0b1120; border: 1px solid #2a3d60; color: #ffb24d;
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace; font-size: 0.86rem;
+        }
+        .welcome-how { font-size: 0.82rem; color: #8ea2c8; border-top: 1px solid #2a3d60; padding-top: 10px; }
+        .welcome-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+        .welcome-actions button {
+            font-family: inherit; font-size: 0.88rem; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+            border: 1px solid #3a4a6b; background: #1e2d50; color: #c0c8dd;
+        }
+        .welcome-actions button.primary { background: #e8922f; border-color: #e8922f; color: #1a1205; font-weight: 600; }
+        .welcome-actions button:hover { filter: brightness(1.1); }
+        .welcome-foot { font-size: 0.72rem; color: #556688; margin-top: 12px; }
 
         .shortcut-hint {
             color: #556688;
@@ -285,6 +322,30 @@
             white-space: pre-wrap;
         }
 
+        /* --- Steps panel: the words run and requests sent --- */
+        .steps-section {
+            display: none;
+            border-top: 1px solid #1e2d50;
+            padding: 10px 16px;
+            background: #0b1324;
+            max-height: 38vh;
+            overflow-y: auto;
+        }
+        .steps-section.has-steps { display: block; }
+        #steps {
+            font-family: 'Consolas', 'Noto Sans Kannada', 'Tunga', monospace;
+            font-size: 0.8rem;
+            line-height: 1.55;
+        }
+        .step { white-space: pre-wrap; word-break: break-word; }
+        .step .w { color: #e8922f; font-weight: bold; }
+        .step .io { color: #7f8fb0; }
+        .step.fetch { color: #5fb3d9; }
+        .step.fetch .live { color: #66cc88; }
+        .step.fetch .cached { color: #8899bb; }
+        .step.fetch.failed { color: #e85555; }
+        .step.more { color: #556688; font-style: italic; }
+
         /* --- Context panel (Sandarbha) --- */
         .context-section {
             display: none;
@@ -394,15 +455,18 @@
 </head>
 <body>
     <header>
-        <h1>ಕಪಿಲ <span>Playground</span></h1>
+        <a href="./" class="home-link" title="Kapila home"><h1>ಕಪಿಲ <span>Playground</span></h1></a>
         <button id="about-btn" title="About ಕಪಿಲ">i</button>
         <div class="header-controls">
             <div class="mode-toggle">
                 <button id="mode-code" class="active">ಕೋಡ್</button>
-                <button id="mode-nl">ಸಹಜ ಭಾಷೆ</button>
+                <!-- NL mode hidden for now (keyword-MLP engine being retired); code kept -->
+                <button id="mode-nl" hidden>ಸಹಜ ಭಾಷೆ</button>
                 <button id="mode-sandarbha">ಸಂದರ್ಭ</button>
             </div>
-            <div class="mode-toggle">
+            <!-- Language toggle hidden: Kannada + English only for now; other
+                 languages return via the PTP language protocol (docs/ptp.md) -->
+            <div class="mode-toggle" style="display:none">
                 <button id="lang-kn" class="active">ಕನ್ನಡ</button>
                 <button id="lang-hi">हिन्दी</button>
             </div>
@@ -443,6 +507,10 @@
                 <pre id="output" class="empty">ಕೋಡ್ ಓಡಿಸಲು ▶ ಒತ್ತಿ ಅಥವಾ Ctrl+Enter ಬಳಸಿ
 Press ▶ or Ctrl+Enter to run code</pre>
             </div>
+            <div class="steps-section" id="steps-section">
+                <div class="stack-label">ಹಂತಗಳು (Steps) — ಓಡಿದ ಪದಗಳು ಮತ್ತು ಹೊರಗೆ ಕಳುಹಿಸಿದ ವಿನಂತಿಗಳು · words run and requests sent</div>
+                <div id="steps"></div>
+            </div>
             <div class="stack-section">
                 <div class="stack-label">Stack</div>
                 <pre id="stack">[]</pre>
@@ -460,12 +528,24 @@ Press ▶ or Ctrl+Enter to run code</pre>
 
     <!-- About modal -->
     <div class="modal-overlay" id="about-modal">
-        <div class="modal">
-            <button class="modal-close" id="modal-close">&times;</button>
-            <h2>ಕಪಿಲ (Kapila)</h2>
-            <p>A Kannada programming language — stack-based, concatenative, with Forth's soul and Smalltalk's face.</p>
-            <p>Write code in Kannada script or switch to Natural Language mode and let PicoNN understand your intent.</p>
-            <p style="font-size:0.78rem; color:#556688; margin-top:12px;">Built with Pampa (akshara-aware text processing) &amp; PicoNN (scalar autograd).</p>
+        <div class="modal welcome" role="dialog" aria-labelledby="welcome-title">
+            <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+            <h2 id="welcome-title">ಕಪಿಲಕ್ಕೆ ಸ್ವಾಗತ · Welcome to Kapila</h2>
+            <div class="sub">ಭಾರತೀಯ ಭಾಷೆಗಳಲ್ಲಿ ಪ್ರೋಗ್ರಾಮಿಂಗ್ ವೇದಿಕೆ — an Indic-language programming platform. Write programs in Kannada.</div>
+            <ul class="welcome-points">
+                <li><span class="ic">✍️</span><b>ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ · Write in Kannada.</b> Values first, then the action:<br>
+                    <code>೫ ೩ ಕೂಡು ಮುದ್ರಿಸು.</code> → 8 &nbsp;(“5 3 add print”)</li>
+                <li><span class="ic">🌐</span><b>ಜೀವಂತ ಮಾಹಿತಿ · Live data in a few words:</b> news, weather and Wikipedia.<br>
+                    <code>"ಮೈಸೂರು" ಹವಾಮಾನ ಮುದ್ರಿಸು.</code> &nbsp;<code>"ವಾಣಿಜ್ಯ" ಸುದ್ದಿ ಮುದ್ರಿಸು.</code></li>
+                <li><span class="ic">🧠</span><b>Built from scratch:</b> its own neural network (PicoNN) and akshara-aware Indic text handling (Pampa).</li>
+                <li><span class="ic">🌏</span><b>Every language welcome:</b> a language-pack protocol is on the way, so you can build Kapila in your own language.</li>
+            </ul>
+            <div class="welcome-how">ಎಡಭಾಗದಲ್ಲಿ ಬರೆಯಿರಿ, <b>▶ ಓಡಿಸು</b> ಒತ್ತಿ (ಅಥವಾ Ctrl+Enter) · Type on the left, press <b>▶ ಓಡಿಸು</b> or Ctrl+Enter. The output and the <b>Steps</b> (every word run, every request sent) appear on the right. Reopen this anytime with <b>i</b>.</div>
+            <div class="welcome-actions">
+                <button id="welcome-start">ಆರಂಭಿಸಿ · Start</button>
+                <button id="welcome-try" class="primary">ಉದಾಹರಣೆ ಓಡಿಸಿ · Run an example ▶</button>
+            </div>
+            <div class="welcome-foot">Built with Pampa (akshara-aware text processing) &amp; PicoNN (scalar autograd).</div>
         </div>
     </div>
 
@@ -862,6 +942,51 @@ Press ▶ or Ctrl+Enter to run code</pre>
             }
 
             stack.textContent = data.stack || '[]';
+            displaySteps(data.trace || [], data.trace_dropped || 0);
+        }
+
+        // --- Steps: every word run and every request sent (built with
+        //     textContent only: queries contain user text) ---
+        function displaySteps(trace, dropped) {
+            const box = document.getElementById('steps');
+            const section = document.getElementById('steps-section');
+            box.replaceChildren();
+            section.classList.toggle('has-steps', trace.length > 0);
+            const span = (cls, text) => {
+                const el = document.createElement('span');
+                el.className = cls; el.textContent = text; return el;
+            };
+            for (const e of trace) {
+                const row = document.createElement('div');
+                row.className = 'step';
+                row.style.paddingLeft = (e.d * 1.4) + 'em';
+                if (e.k === 'word') {
+                    row.append(span('w', e.w));
+                    const io = (e.in ? '  ← ' + e.in : '') + (e.out ? '  → ' + e.out : '');
+                    if (io) row.append(span('io', io));
+                } else if (e.k === 'fetch') {
+                    row.classList.add('fetch');
+                    const path = e.path.length > 110 ? e.path.slice(0, 109) + '…' : e.path;
+                    row.title = 'https://' + e.host + e.path;
+                    row.append('🌐 GET ' + e.host + path + '  ');
+                    if (e.error) {
+                        row.classList.add('failed');
+                        row.append(span('', '✗ ' + e.error));
+                    } else if (e.cached) {
+                        row.append(span('cached', 'ಸಂಗ್ರಹದಿಂದ (cached)'));
+                    } else {
+                        const kb = (e.bytes / 1024).toFixed(1);
+                        row.append(span('live', 'ನೇರ (live) ' + e.ms + 'ms · ' + kb + 'KB'));
+                    }
+                }
+                box.append(row);
+            }
+            if (dropped > 0) {
+                const row = document.createElement('div');
+                row.className = 'step more';
+                row.textContent = '… ' + dropped + ' ಇನ್ನಷ್ಟು ಹಂತಗಳು (more steps)';
+                box.append(row);
+            }
         }
 
         // --- Load examples on change ---
@@ -887,6 +1012,7 @@ Press ▶ or Ctrl+Enter to run code</pre>
             output.className = 'empty';
             stack.textContent = '[]';
             genCodeBox.style.display = 'none';
+            displaySteps([], 0);
             exSelect.value = '';
 
             // Reset sandarbha session
@@ -911,8 +1037,44 @@ Press ▶ or Ctrl+Enter to run code</pre>
         // --- About modal ---
         const aboutModal = document.getElementById('about-modal');
         document.getElementById('about-btn').addEventListener('click', () => aboutModal.classList.add('open'));
-        document.getElementById('modal-close').addEventListener('click', () => aboutModal.classList.remove('open'));
-        aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) aboutModal.classList.remove('open'); });
+        aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) closeWelcome(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && aboutModal.classList.contains('open')) closeWelcome(); });
+
+        // Welcome on the first visit only (remembered in this browser; blocked
+        // or cleared storage just shows it again, which is harmless).
+        function closeWelcome() {
+            aboutModal.classList.remove('open');
+            try { localStorage.setItem('kapila_welcomed', '1'); } catch (_) {}
+            editor.focus();
+        }
+        document.getElementById('modal-close').addEventListener('click', closeWelcome);
+        document.getElementById('welcome-start').addEventListener('click', closeWelcome);
+        document.getElementById('welcome-try').addEventListener('click', async () => {
+            closeWelcome();
+            try {
+                const list = await (await fetch('examples')).json();
+                const ex = list.find(e => e.name === 'mashables.kpl') || list[0];
+                if (ex) {
+                    editor.value = ex.code;
+                    charCount.textContent = `${editor.value.length} / 5000`;
+                    runBtn.click();
+                }
+            } catch (_) {}
+        });
+        // Code handed over from the home page's playground panel: /play#code=…
+        let handedCode = null;
+        if (location.hash.startsWith('#code=')) {
+            try { handedCode = decodeURIComponent(location.hash.slice(6)); } catch (_) {}
+            history.replaceState(null, '', location.pathname);
+        }
+        if (handedCode) {
+            editor.value = handedCode.slice(0, 5000);
+            charCount.textContent = `${editor.value.length} / 5000`;
+        }
+
+        let welcomed = !!handedCode;   // they've already met Kapila on the home page
+        try { welcomed = welcomed || localStorage.getItem('kapila_welcomed') === '1'; } catch (_) {}
+        if (!welcomed) aboutModal.classList.add('open');
 
         // --- Initial load ---
         loadCodeExamples();

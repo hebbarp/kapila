@@ -29,7 +29,8 @@ else:
     sys.path.insert(0, kapila_dir)
 
 from src.parser import parse
-from src.codegen.c_generator import generate_c
+from src.codegen.c_generator import CompileError, generate_c
+from src import __version__
 
 # Runtime location
 RUNTIME_DIR = os.path.join(kapila_dir, 'runtime')
@@ -151,7 +152,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print("ಕಪಿಲ (Kapila) Compiler v0.8.0 (C backend)")
+        print(f"ಕಪಿಲ (Kapila) Compiler v{__version__} (C backend)")
         cc, cc_type = find_c_compiler()
         if cc:
             print(f"C Compiler: {cc_type} ({cc})")
@@ -190,14 +191,22 @@ def main():
         return
 
     # Prepend standard library prelude
+    prelude_lines = 0
     prelude_path = os.path.join(kapila_dir, 'lib', 'prelude.kpl')
     if os.path.exists(prelude_path):
         with open(prelude_path, 'r', encoding='utf-8') as f:
-            source = f.read() + '\n' + source
+            prelude = f.read()
+        source = prelude + '\n' + source
+        prelude_lines = prelude.count('\n') + 1
 
     # Parse and generate C code
     program = parse(source)
-    c_code = generate_c(program)
+    try:
+        c_code = generate_c(program)
+    except CompileError as e:
+        line = max(e.line - prelude_lines, 0)
+        print(f"{args.input or '<code>'}:{line}: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Emit C mode
     if args.emit_c:

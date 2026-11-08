@@ -186,15 +186,17 @@ def builtin_rot(vm):
 # === I/O ===
 
 def builtin_print(vm):
-    """( a -- ) Print top of stack."""
+    """( a -- ) Print top of stack (records print one field per line)."""
+    from .records import format_value
     a = vm.pop()
-    print(a)
+    print(format_value(a))
 
 
 def builtin_println(vm):
     """( a -- ) Print with newline."""
+    from .records import format_value
     a = vm.pop()
-    print(a)
+    print(format_value(a))
 
 
 def builtin_show_stack(vm):
@@ -670,6 +672,11 @@ def builtin_write_file(vm):
         vm.push(False)
 
 
+# Builtins that touch the host (filesystem, stdin). VM(sandbox=True) drops
+# them — matched by function, so every language's alias goes too.
+UNSAFE_BUILTINS = frozenset({builtin_read_file, builtin_write_file, builtin_read_line})
+
+
 # === Boolean builtins (push literal values) ===
 
 def builtin_true(vm):
@@ -812,6 +819,12 @@ _CORE_BUILTINS = {
 def _build_builtins():
     """Build complete builtins dict with Kannada vocabulary."""
     builtins = dict(_CORE_BUILTINS)
+
+    # Records and mashable sources (see docs/mashables.md)
+    from .records import RECORD_BUILTINS
+    from .sources import SOURCE_BUILTINS
+    builtins.update(RECORD_BUILTINS)
+    builtins.update(SOURCE_BUILTINS)
 
     # Import vocabulary and add Kannada aliases
     try:

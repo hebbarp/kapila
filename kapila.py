@@ -24,13 +24,14 @@ if sys.platform == 'win32':
 kapila_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, kapila_dir)
 
+from src import __version__
 from src.vm import VM, KapilaError
 from src.lexer import tokenize
 
 
 def repl():
     """Run the Kapila REPL."""
-    print("ಕಪಿಲ (Kapila) v0.1")
+    print(f"ಕಪಿಲ (Kapila) v{__version__}")
     print("A Kannada programming language")
     print("Type 'exit' to quit, 'help' for help")
     print()

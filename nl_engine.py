@@ -13,6 +13,8 @@ Architecture:
 import sys
 import os
 import re
+import json
+import hashlib
 import random
 
 # Add dependency paths (local dev overrides; on server these are in the app dir)
@@ -324,7 +326,7 @@ class KapilaNLEngine:
     def train(self, epochs=80, lr=0.05):
         """Train the intent classifier on built-in training data."""
         # input → 16 → num_intents (kept small for PicoNN scalar autograd speed)
-        self.model = MLP(self.num_features, [16, self.num_intents])
+        self.model = MLP(self.num_features, [HIDDEN, self.num_intents])
         optimizer = Adam(self.model.parameters(), lr=lr)
 
         data = TRAINING_DATA.copy()
@@ -444,12 +446,57 @@ class KapilaNLEngine:
 _engine = None
 
 
+# Trained weights, saved so the server can load them instead of retraining at
+# every startup (training at startup kept the site down for minutes after a
+# deploy). Regenerate with:  python nl_engine.py --save-weights
+WEIGHTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nl_weights.json")
+HIDDEN = 16
+
+
+def _fingerprint() -> str:
+    """Changes whenever anything the weights depend on changes."""
+    basis = json.dumps([KEYWORDS, INTENTS, TRAINING_DATA, HIDDEN], ensure_ascii=False)
+    return hashlib.sha256(basis.encode("utf-8")).hexdigest()
+
+
+def save_weights(engine: "KapilaNLEngine", path: str = WEIGHTS_FILE) -> None:
+    data = {
+        "fingerprint": _fingerprint(),
+        "shape": [engine.num_features, HIDDEN, engine.num_intents],
+        "params": [p.data for p in engine.model.parameters()],
+        "train_log": engine.train_log,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
+
+def load_weights(engine: "KapilaNLEngine", path: str = WEIGHTS_FILE) -> bool:
+    """Load saved weights if they match the current keywords/intents/data. True on success."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if data.get("fingerprint") != _fingerprint():
+        return False
+    engine.model = MLP(engine.num_features, [HIDDEN, engine.num_intents])
+    params = engine.model.parameters()
+    if len(params) != len(data.get("params", [])):
+        return False
+    for p, v in zip(params, data["params"]):
+        p.data = float(v)
+    engine.train_log = list(data.get("train_log", [])) + ["loaded saved weights"]
+    engine.trained = True
+    return True
+
+
 def get_engine() -> KapilaNLEngine:
-    """Get or create the singleton NL engine (trained on first call)."""
+    """Get or create the singleton NL engine: load saved weights, else train."""
     global _engine
     if _engine is None:
         _engine = KapilaNLEngine()
-        _engine.train(epochs=80, lr=0.05)
+        if not load_weights(_engine):
+            _engine.train(epochs=80, lr=0.05)
     return _engine
 
 
@@ -457,6 +504,16 @@ def get_engine() -> KapilaNLEngine:
 # CLI demo
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    if "--save-weights" in sys.argv:
+        sys.stdout.reconfigure(encoding="utf-8")
+        engine = KapilaNLEngine()
+        engine.train(epochs=80, lr=0.05)
+        save_weights(engine)
+        for line in engine.train_log:
+            print(line)
+        print(f"saved {WEIGHTS_FILE}")
+        sys.exit(0)
+
     print("Kapila NL Engine — Training...")
     engine = get_engine()
     for line in engine.train_log:

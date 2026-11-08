@@ -6,6 +6,7 @@ Creates:
   dist/kapila/
     kapila.exe     - REPL/Interpreter
     kapilac.exe    - Compiler
+    kapila-gui.exe - Desktop window (REPL with live news/weather/wiki)
     runtime/       - C runtime library
     tcc/           - TinyCC compiler
     examples/      - Example programs
@@ -60,6 +61,34 @@ def build_compiler():
         'kapilac.py'
     ]
     subprocess.run(cmd, cwd=ROOT_DIR, check=True)
+
+
+def build_gui():
+    """Build kapila-gui.exe (windowed REPL, no console)."""
+    print("\nBuilding kapila-gui.exe (desktop GUI)...")
+    cmd = [
+        sys.executable, '-m', 'PyInstaller',
+        '--onefile',
+        '--windowed',
+        '--name', 'kapila-gui',
+        '--icon', os.path.join(ROOT_DIR, 'static', 'kapila.ico'),
+        '--add-data', os.path.join(ROOT_DIR, 'static', 'kapila.ico') + os.pathsep + 'static',
+        '--distpath', DIST_DIR,
+        '--workpath', BUILD_DIR,
+        '--specpath', BUILD_DIR,
+        '--clean',
+        'kapila_gui.py'
+    ]
+    subprocess.run(cmd, cwd=ROOT_DIR, check=True)
+
+
+def publish_gui():
+    """Copy the GUI to static/downloads so the website serves it."""
+    dst_dir = os.path.join(ROOT_DIR, 'static', 'downloads')
+    os.makedirs(dst_dir, exist_ok=True)
+    dst = os.path.join(dst_dir, 'kapila-gui-windows-x64.exe')
+    shutil.copy(os.path.join(DIST_DIR, 'kapila-gui.exe'), dst)
+    print(f"Copied for download: {dst}")
 
 
 def copy_runtime():
@@ -141,6 +170,7 @@ A native Kannada programming language that compiles to machine code.
 
 - `kapila.exe` - Interpreter/REPL
 - `kapilac.exe` - Compiler
+- `kapila-gui.exe` - Desktop window: type a line, press Enter
 - `runtime/` - C runtime library
 - `tcc/` - TinyCC compiler (bundled)
 - `examples/` - Sample programs
@@ -167,6 +197,12 @@ def create_zip():
 
 
 def main():
+    if '--gui-only' in sys.argv:
+        os.makedirs(DIST_DIR, exist_ok=True)
+        build_gui()
+        publish_gui()
+        return
+
     print("=" * 50)
     print("Building Kapila Distribution")
     print("=" * 50)
@@ -174,11 +210,13 @@ def main():
     clean()
     build_interpreter()
     build_compiler()
+    build_gui()
     copy_runtime()
     copy_tcc()
     copy_examples()
     create_readme()
     create_zip()
+    publish_gui()
 
     print("\n" + "=" * 50)
     print("Build complete!")

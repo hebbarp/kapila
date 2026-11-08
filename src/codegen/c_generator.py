@@ -12,6 +12,7 @@ emit calls passing block function pointers.
 Variables use var_set/var_get from the runtime.
 """
 
+from dataclasses import fields, is_dataclass
 from typing import List, Dict, Optional
 from ..parser.ast import (
     Node, Expr, Stmt, Program,
@@ -22,6 +23,14 @@ from ..parser.ast import (
     NodeVisitor
 )
 from ..vocabulary import VOCABULARY
+
+
+class CompileError(Exception):
+    """The program can't be compiled faithfully. Never skip what we can't build."""
+
+    def __init__(self, message: str, line: int = 0):
+        super().__init__(message)
+        self.line = line
 
 
 class CGenerator(NodeVisitor):
@@ -270,14 +279,37 @@ class CGenerator(NodeVisitor):
             if hasattr(self, '_pending_blocks') and self._pending_blocks:
                 self._emit_higher_order_call(english)
                 return
-            self._emit(f'/* higher-order word: {name} (no block available) */')
-            return
+            raise CompileError(
+                f'{name}: ಮೊದಲು [ ಖಂಡ ] ಬೇಕು / {name} needs a [ block ] written right before it',
+                node.line)
 
-        # Variable in word body - try as variable
-        # In word bodies, unknown words used with := might be variables
-        self._emit(f'/* unknown word: {name} */')
+        raise self._unknown_word_error(node)
+
+    def _is_known_word(self, name: str) -> bool:
+        return (name in self.bool_literals or name in self.variables or
+                name in self.word_defs or name in self.simple_builtins or
+                name in self.higher_order_words)
+
+    def _unknown_word_error(self, node: Word) -> CompileError:
+        name = node.name
+        if name in VOCABULARY or name in set(VOCABULARY.values()):
+            return CompileError(
+                f'{name}: ಇಂಟರ್‌ಪ್ರಿಟರ್‌ನಲ್ಲಿ ಮಾತ್ರ / "{name}" works in the interpreter only; '
+                f'the compiler cannot build it yet',
+                node.line)
+        return CompileError(f'ಗೊತ್ತಿಲ್ಲದ ಪದ / unknown word: {name}', node.line)
+
+    def visit_Sequence(self, node):
+        self._visit_body_items(node.items)
 
     def visit_BinaryExpr(self, node: BinaryExpr):
+        if (node.op == '=' and isinstance(node.left, Word)
+                and not self._is_known_word(node.left.name)):
+            name = node.left.name
+            raise CompileError(
+                f'ಗೊತ್ತಿಲ್ಲದ ಪದ / unknown word: {name}. '
+                f'ಮೌಲ್ಯ ಇಡಲು := ಬಳಸಿ / to assign a value use :=  ({name} := ೫.)',
+                node.line)
         self.visit(node.left)
         self.visit(node.right)
 
@@ -371,7 +403,10 @@ class CGenerator(NodeVisitor):
         self._emit('}')
 
     def visit_MapLit(self, node: MapLit):
-        self._emit('/* Map literals not yet supported in C codegen */')
+        raise CompileError(
+            'ದಾಖಲೆಗಳು ಇಂಟರ್‌ಪ್ರಿಟರ್‌ನಲ್ಲಿ ಮಾತ್ರ / records { … } work in the interpreter only; '
+            'the compiler cannot build them yet',
+            node.line)
 
     def visit_QuotedWord(self, node: QuotedWord):
         escaped = self._escape_str(node.name)
@@ -422,16 +457,18 @@ class CGenerator(NodeVisitor):
         # Header
         self._emit_header()
 
-        # Block function forward declarations
-        for block_def in self.block_defs:
-            self.output.append(block_def)
-            self.output.append('')
-
         # Word function forward declarations
+        # These must precede block definitions because a generated block can
+        # call a user-defined word (recursive words such as factorial do so).
         for name in self.word_defs:
             c_name = self._mangle_name(name)
             self.output.append(f'void {c_name}(void);')
         self.output.append('')
+
+        # Block function definitions
+        for block_def in self.block_defs:
+            self.output.append(block_def)
+            self.output.append('')
 
         # Word functions
         for line in word_code:
@@ -455,10 +492,19 @@ class CGenerator(NodeVisitor):
         return '\n'.join(self.output)
 
     def _collect_variables(self, program: Program):
-        """Collect variable names from the program."""
-        for stmt in program.statements:
-            if isinstance(stmt, VarAssign):
-                self.variables.add(stmt.name)
+        """Collect every assigned name, including those inside word bodies
+        and blocks, so a word can use a variable another word assigns."""
+        def walk(node):
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+            elif is_dataclass(node):
+                if isinstance(node, VarAssign):
+                    self.variables.add(node.name)
+                for f in fields(node):
+                    walk(getattr(node, f.name))
+
+        walk(program.statements)
 
     def _visit_stmt_with_ho(self, stmt):
         """Visit a statement, handling higher-order word patterns."""

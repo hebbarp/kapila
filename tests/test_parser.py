@@ -13,8 +13,12 @@ import sys
 import os
 import io
 
+# This file is a verbose manual demonstration. Automated regression tests live
+# in test_regressions.py; do not collect the parameterized print helper below.
+__test__ = False
+
 # Fix Windows console encoding
-if sys.platform == 'win32':
+if sys.platform == 'win32' and __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 

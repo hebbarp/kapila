@@ -218,6 +218,12 @@ class TypeChecker(NodeVisitor):
 
         return common_type(true_type, false_type)
 
+    def visit_Sequence(self, node) -> Type:
+        result = None
+        for item in node.items:
+            result = self.visit(item)
+        return result
+
     def visit_PostfixAction(self, node: PostfixAction) -> Type:
         # Start with the value type
         current_type = self.visit(node.value)

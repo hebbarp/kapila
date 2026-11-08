@@ -15,10 +15,18 @@ Also provides a noun→type map for resolving bare nouns as type hints.
 
 # Verb → list of (role, type_constraint) in stack order
 VERB_FRAMES = {
+    # --- Arithmetic (ಗಣಿತ) ---
+    'ಕೂಡು':     [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # add: num, num
+    'ಕೂಡಿಸು':   [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # add (alt)
+    'ಕಳೆ':      [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # subtract: num, num
+    'ಗುಣಿಸು':   [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # multiply: num, num
+    'ಭಾಗಿಸು':   [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # divide: num, num
+    'ಶೇಷ':      [('ವಸ್ತು', 'ಸಂಖ್ಯೆ'), ('ವಸ್ತು', 'ಸಂಖ್ಯೆ')],   # modulo: num, num
+    # --- IO / File (ಕಡತ) ---
+    'ಮುದ್ರಿಸು':  [('ವಸ್ತು', '*')],                           # print: object
     'ಕಳಿಸು':    [('ವಸ್ತು', '*'), ('ಗಮ್ಯ', 'ವ್ಯಕ್ತಿ')],       # send: object, recipient
     'ಓದು':      [('ವಸ್ತು', 'ಕಡತ')],                         # read: object(file)
     'ಬರೆ':      [('ವಸ್ತು', '*'), ('ಗಮ್ಯ', 'ಕಡತ')],           # write: content, dest(file)
-    'ಮುದ್ರಿಸು':  [('ವಸ್ತು', '*')],                           # print: object
     'ತೆರೆ':      [('ವಸ್ತು', 'ಕಡತ')],                         # open: object(file)
     'ಅಳಿಸು':    [('ವಸ್ತು', '*')],                            # delete: object
     'ನಕಲು':     [('ವಸ್ತು', '*'), ('ಗಮ್ಯ', 'ಸ್ಥಳ')],          # copy: object, dest

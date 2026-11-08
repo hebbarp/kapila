@@ -24,7 +24,7 @@ Example:
     x > ೫ ? [ "ದೊಡ್ಡ" ] [ "ಚಿಕ್ಕ" ] ಮುದ್ರಿಸು.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.8.0"
 __author__ = "Kapila Project"
 
 from .lexer import tokenize, Lexer, Token, TokenType

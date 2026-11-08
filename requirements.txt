@@ -1,3 +1,4 @@
 # Kapila dependencies
 llvmlite>=0.41.0
 flask>=3.0.0
+markdown>=3.5

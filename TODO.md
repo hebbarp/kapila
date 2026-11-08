@@ -4,7 +4,7 @@
 
 ### Phase 0: Foundation
 - [x] Project structure and documentation
-- [x] Kannada Unicode handling (from Pampa)
+- [x] Kannada, Devanagari/Hindi, and Telugu Unicode handling
 - [x] Language design (Forth + Smalltalk + Perl hybrid)
 
 ### Phase 1: Lexer
@@ -21,7 +21,7 @@
 - [x] Word definitions (name: body ॥)
 - [x] Variables (name := value.)
 - [x] Conditionals (? operator)
-- [x] Built-in words (Kannada and English)
+- [x] Built-in words (Kannada, Hindi, Telugu, and English)
 - [x] Blocks [ ] with parameters
 - [x] Higher-order functions (map, filter, fold)
 - [x] REPL for interactive testing
@@ -50,21 +50,30 @@
 - [x] Word definitions → C functions
 - [x] Compiler script (kapilac.py)
 
-## Future 🔮
+### Phase 6: Runtime Library ✅
+- [x] Stack value memory management
+- [x] Print functions
+- [x] String operations
+- [x] List operations
+- [x] File I/O
 
-### LLVM Backend (optional)
-- [ ] Set up llvmlite
-- [ ] Generate LLVM IR instead of C
+### Phase 7: Multilingual and Contextual Execution ✅
+- [x] Hindi/Devanagari vocabulary and numerals
+- [x] Telugu vocabulary and numerals
+- [x] Web playground
+- [x] Experimental Sandarbha context resolver
+
+## In Progress 🚧
+
+### LLVM Backend (experimental)
+- [x] Set up llvmlite
+- [x] Generate basic LLVM IR
+- [ ] Correct variable storage and lookup
+- [ ] Correct conditional control flow
+- [ ] List and map runtime representation
 - [ ] Direct native compilation
 
-### Phase 6: Runtime Library
-- [ ] Memory management
-- [ ] Print functions
-- [ ] String operations
-- [ ] List operations
-- [ ] File I/O
-
-### Phase 7: Tooling
+### Tooling
 - [ ] Better error messages with Kannada
 - [ ] Source maps for debugging
 - [ ] VSCode extension (syntax highlighting)
@@ -81,7 +90,8 @@
 
 ## Technical Debt 🔧
 
-- [ ] Comprehensive test suite
+- [x] Discoverable regression suite for core execution paths and examples
+- [ ] Broader negative/error-path and runtime edge-case coverage
 - [ ] Benchmarks
 - [ ] Documentation for all modules
 - [ ] CI/CD setup

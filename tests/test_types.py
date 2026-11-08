@@ -11,7 +11,11 @@ import sys
 import os
 import io
 
-if sys.platform == 'win32':
+# This file remains runnable as a verbose demonstration. The discoverable
+# assertions are in test_regressions.py.
+__test__ = False
+
+if sys.platform == 'win32' and __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 kapila_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

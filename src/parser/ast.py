@@ -156,6 +156,16 @@ class Conditional(Expr):
 # === Postfix Actions ===
 
 @dataclass
+class Sequence(Expr):
+    """
+    Several stack operations that together produce one value.
+
+    Example: the right-hand side of  x := ೨ ೩ ಕೂಡು.
+    """
+    items: List[Expr] = field(default_factory=list)
+
+
+@dataclass
 class PostfixAction(Expr):
     """
     A sequence of value followed by words (postfix actions).

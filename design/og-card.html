@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Tamma+2:wght@600;800&family=Noto+Sans+Kannada:wght@400;600&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(900px 520px at 100% 0%, rgba(232,146,47,.28), transparent 60%),
+      radial-gradient(700px 500px at 0% 100%, rgba(85,153,221,.16), transparent 60%),
+      #0b1120;
+    color: #e6ecf7; font-family: 'Inter', 'Noto Sans Kannada', sans-serif;
+    position: relative;
+  }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 40px 40px; mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); }
+  .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: linear-gradient(#f5b041, #e8922f 60%, #c0561a); }
+  .left { position: absolute; left: 76px; top: 52px; width: 600px; }
+  .pill { display: inline-block; font-size: 19px; font-weight: 500; letter-spacing: .02em;
+    color: #f5c27a; border: 1.5px solid rgba(232,146,47,.55); border-radius: 999px; padding: 7px 18px;
+    background: rgba(232,146,47,.08); }
+  .mark { font-family: 'Baloo Tamma 2', 'Noto Sans Kannada'; font-weight: 800; font-size: 160px; line-height: 1;
+    margin-top: 22px; background: linear-gradient(180deg, #ffd27a 0%, #e8922f 55%, #c4561c 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 26px rgba(232,146,47,.35)); }
+  .name { font-size: 38px; white-space: nowrap; font-weight: 700; margin-top: 2px; letter-spacing: .01em; }
+  .name span { color: #8ea2c8; font-weight: 400; }
+  .feats { margin-top: 24px; display: grid; gap: 10px; font-size: 21px; color: #c9d4ea; }
+  .feats div::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    background: #e8922f; margin-right: 14px; transform: translateY(-3px); }
+  .card { position: absolute; right: 60px; top: 150px; width: 460px;
+    background: rgba(17,27,48,.92); border: 1px solid #2a3d60; border-radius: 16px;
+    box-shadow: 0 30px 70px rgba(0,0,0,.45), 0 0 0 1px rgba(232,146,47,.12); overflow: hidden; }
+  .tb { display: flex; gap: 8px; padding: 14px 18px; border-bottom: 1px solid #22345a; background: #142140; }
+  .tb i { width: 12px; height: 12px; border-radius: 50%; background: #3a4a6b; }
+  .tb i:nth-child(1) { background: #e8665a; } .tb i:nth-child(2) { background: #e8b84a; } .tb i:nth-child(3) { background: #5fbf6a; }
+  .code { padding: 22px 24px 26px; font-family: 'JetBrains Mono', 'Noto Sans Kannada', monospace; font-size: 22px; line-height: 1.75; }
+  .s { color: #9fd38b; } .w { color: #f0a54a; font-weight: 600; } .out { color: #7fb8ec; } .c { color: #5f7090; }
+  .foot { position: absolute; left: 76px; bottom: 34px; font-size: 22px; color: #8ea2c8; letter-spacing: .02em; }
+  .foot b { color: #f5c27a; font-weight: 600; }
+</style></head>
+<body>
+  <div class="grid"></div><div class="bar"></div>
+  <div class="left">
+    <div class="pill">Indic-language programming platform</div>
+    <div class="mark">ಕಪಿಲ</div>
+    <div class="name">Kapila <span>· program in Kannada</span></div>
+    <div class="feats">
+      <div>Neural network built from scratch</div>
+      <div>Live news, weather &amp; Wikipedia in a few words</div>
+      <div>Build a language pack for your own language</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="tb"><i></i><i></i><i></i></div>
+    <div class="code">
+      <div><span class="s">"ಮೈಸೂರು"</span> <span class="w">ಹವಾಮಾನ ಸ್ಥಿತಿ ಮುದ್ರಿಸು</span>.</div>
+      <div class="out">→ ಭಾಗಶಃ ಮೋಡ</div>
+      <div class="c">&nbsp;</div>
+      <div><span class="s">"ವಾಣಿಜ್ಯ"</span> <span class="w">ಸುದ್ದಿ</span> ೩ <span class="w">ತೆಗೆದುಕೊ</span></div>
+      <div>&nbsp;&nbsp;<span class="w">ಶೀರ್ಷಿಕೆ ಮುದ್ರಿಸು</span>.</div>
+      <div class="out">→ top 3 business headlines</div>
+    </div>
+  </div>
+  <div class="foot"><b>kapila.matsyaai.com</b> &nbsp;·&nbsp; ಕನ್ನಡದಲ್ಲಿ ಪ್ರೋಗ್ರಾಮಿಂಗ್</div>
+</body></html>

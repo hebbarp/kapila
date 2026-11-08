@@ -11,7 +11,9 @@ Perl-style DWIM (Do What I Mean):
 import os
 from typing import Any, Dict, List, Optional
 from ..lexer import tokenize, Token, TokenType
-from .builtins import BUILTINS
+from .builtins import BUILTINS, UNSAFE_BUILTINS
+from .records import has_field, get_field
+from .trace import add as trace_add, summarize
 from ..sandarbha import (
     Sandarbha, analyze_vibhakti, VibhaktiResult,
     VERB_FRAMES, NOUN_TYPE_MAP, infer_type,
@@ -39,12 +41,29 @@ class Block:
 class VM:
     """Kapila virtual machine."""
 
-    def __init__(self, enable_sandarbha=False):
+    def __init__(self, enable_sandarbha=False, sandbox=False):
         self.stack: List[Any] = []
         self.words: Dict[str, Block] = {}
         self.variables: Dict[str, Any] = {}
         self.sutras: Dict[str, Block] = {}
-        self.builtins = BUILTINS
+        # sandbox: untrusted code (web playground) gets no file/stdin access
+        if sandbox:
+            self.builtins = {k: f for k, f in BUILTINS.items() if f not in UNSAFE_BUILTINS}
+        else:
+            self.builtins = BUILTINS
+
+        # Mashable sources: per-run call budget, and who to rate-limit (web sets this)
+        from .sources import FETCHES_PER_RUN
+        self.fetch_budget = FETCHES_PER_RUN
+        self.client_id = None
+        self._run_depth = 0
+        # Execution trace: set to [] to record steps (see trace.py)
+        self.trace = None
+        self.trace_dropped = 0
+        self._trace_depth = 0
+        self._current_word = None   # for error messages
+        # Genitive field access: after ಸುದ್ದಿಗಳ, the next word may name a field
+        self._field_pending = False
 
         # Sandarbha (context resolver) — opt-in
         if enable_sandarbha:
@@ -147,7 +166,10 @@ class VM:
 
     def pop(self) -> Any:
         if not self.stack:
-            raise KapilaError("Stack underflow")
+            word = self._current_word
+            if word:
+                raise KapilaError(f"{word}: ಮೌಲ್ಯ ಬೇಕು, ಸ್ಟಾಕ್ ಖಾಲಿ / {word} needs a value, but the stack is empty")
+            raise KapilaError("ಸ್ಟಾಕ್ ಖಾಲಿ / stack underflow")
         return self.stack.pop()
 
     def peek(self) -> Any:
@@ -158,7 +180,17 @@ class VM:
     def run(self, source: str) -> Any:
         """Run source code (top-level, allows infix)."""
         tokens = tokenize(source)
-        return self._run_toplevel(tokens)
+        # Each outermost run gets a fresh source budget. Nested runs (eval)
+        # share their caller's, so eval can't be used to reset the limit.
+        if self._run_depth == 0:
+            from .sources import FETCHES_PER_RUN
+            self.fetch_budget = FETCHES_PER_RUN
+            self._field_pending = False
+        self._run_depth += 1
+        try:
+            return self._run_toplevel(tokens)
+        finally:
+            self._run_depth -= 1
 
     def _run_toplevel(self, tokens: List[Token]):
         """Execute tokens at top level (infix allowed)."""
@@ -247,9 +279,18 @@ class VM:
     def _assignment(self):
         """Parse: name := expr."""
         name = self._advance().value
-        self._advance()  # skip :=
+        assign_line = self._advance().line  # skip :=
 
-        value = self._parse_expr()
+        # Evaluate the whole right-hand side, postfix words included, so that
+        # `x := "ಮಳೆ" ಸುದ್ದಿ.` stores the news, not just "ಮಳೆ". Postfix words
+        # count only on the := line: older programs end an assignment at the
+        # line break without a full stop (`nums := [ 1 2 3 ]`).
+        # The right-hand side may use values already on the stack
+        # (`r := "title" ಪಡೆ.`), so assign whatever ends up on top.
+        self._expression_and_actions(line=assign_line)
+        if not self.stack:
+            raise KapilaError(f"{name} := … ಮೌಲ್ಯ ಇಲ್ಲ / no value to assign")
+        value = self.pop()
         self.variables[name] = value
 
         # Record in sandarbha context for implicit resolution
@@ -260,8 +301,8 @@ class VM:
         if self._current().type == TokenType.DOT:
             self._advance()
 
-    def _expression_and_actions(self):
-        """Parse expression, then postfix actions."""
+    def _expression_and_actions(self, line: Optional[int] = None):
+        """Parse expression, then postfix actions (only on `line`, if given)."""
         # Reset per-statement context for sandarbha
         if self.sandarbha:
             self._stmt_context = []
@@ -282,6 +323,9 @@ class VM:
                 break
 
             if token.type in (TokenType.DEF_END, TokenType.RBRACKET, TokenType.EOF):
+                break
+
+            if line is not None and token.line != line:
                 break
 
             if token.type == TokenType.NUMBER:
@@ -330,6 +374,12 @@ class VM:
                                TokenType.SLASH, TokenType.PERCENT):
                 # Handle operators in postfix position
                 self._execute_token(self._advance())
+            elif isinstance(token.value, str) and token.value in self.builtins:
+                # Some Kannada/Hindi/Telugu runtime words are also reserved by
+                # the planned structured-syntax parser (for example ತನಕ and
+                # ಪ್ರತಿಯೊಂದಕ್ಕೂ).  They must remain usable as postfix builtins
+                # in the VM even though the lexer did not classify them WORD.
+                self._execute_word(self._advance().value)
             else:
                 break
 
@@ -589,16 +639,77 @@ class VM:
 
     # === Word Execution ===
 
+    def _unknown_word(self, name: str) -> KapilaError:
+        if self._current().type == TokenType.EQ:
+            return KapilaError(
+                f"Unknown word: {name}. ಮೌಲ್ಯ ಇಡಲು := ಬಳಸಿ / "
+                f"to assign a value use :=  ({name} := ೫.)")
+        return KapilaError(f"Unknown word: {name}")
+
     def _execute_word(self, name: str):
+        """Execute a word, recording it in the trace when tracing is on."""
+        if self.trace is None:
+            self._execute_word_inner(name)
+            return
+        entry = trace_add(self, {"k": "word", "w": name,
+                                 "in": summarize(self.stack[-1]) if self.stack else ""})
+        self._trace_depth += 1
+        try:
+            self._execute_word_inner(name)
+        finally:
+            self._trace_depth -= 1
+            if entry is not None:
+                entry["out"] = summarize(self.stack[-1]) if self.stack else ""
+
+    def _execute_word_inner(self, name: str):
         """Execute a word."""
+        outer, self._current_word = self._current_word, name
+        try:
+            self._execute_word_body(name)
+        finally:
+            self._current_word = outer
+
+    def _execute_word_body(self, name: str):
+        # Field after a genitive: ಸುದ್ದಿಗಳ ಶೀರ್ಷಿಕೆ → the title field
+        if self._field_pending:
+            self._field_pending = False
+            if self.stack and has_field(self.stack[-1], name):
+                self.push(get_field(self.pop(), name))
+                return
+
         if name in self.builtins:
             self.builtins[name](self)
         elif name in self.words:
             self._run_block(self.words[name])
         elif name in self.variables:
             self.push(self.variables[name])
+        elif self.stack and has_field(self.stack[-1], name):
+            # A bare field name after a record: "ಮೈಸೂರು" ಹವಾಮಾನ ಸ್ಥಿತಿ
+            # (the genitive ಹವಾಮಾನದ ಸ್ಥಿತಿ works too)
+            self.push(get_field(self.pop(), name))
         else:
-            raise KapilaError(f"Unknown word: {name}")
+            stem = self._genitive_stem(name)
+            if stem is None:
+                raise self._unknown_word(name)
+            # ಸುದ್ದಿಗಳ = "of ಸುದ್ದಿಗಳು": push it (or run it), then expect a field
+            self._execute_word(stem)
+            self._field_pending = True
+
+    def _genitive_stem(self, name: str) -> Optional[str]:
+        """If name is the Kannada genitive of a known word or variable, return that word.
+
+        ಸುದ್ದಿಯ → ಸುದ್ದಿ   ಹವಾಮಾನದ → ಹವಾಮಾನ   ಊರಿನ → ಊರು   ಸುದ್ದಿಗಳ → ಸುದ್ದಿಗಳು
+        """
+        candidates = []
+        if name.endswith(('ಯ', 'ದ')) and len(name) > 1:
+            candidates.append(name[:-1])
+        if name.endswith('ಿನ') and len(name) > 2:
+            candidates.append(name[:-2] + 'ು')
+        candidates.append(name + 'ು')
+        for c in candidates:
+            if c in self.variables or c in self.words or c in self.builtins:
+                return c
+        return None
 
     def _run_block(self, block: Block):
         """Execute a block (pure postfix Forth-style)."""
@@ -697,9 +808,9 @@ class VM:
                     if type_val is not None:
                         self.push(type_val)
                     else:
-                        raise KapilaError(f"Unknown word: {name}")
+                        raise self._unknown_word(name)
                 else:
-                    raise KapilaError(f"Unknown word: {name}")
+                    raise self._unknown_word(name)
             elif name in self.variables:
                 self.push(self.variables[name])
             elif name in self.builtins:
@@ -707,7 +818,7 @@ class VM:
             elif name in self.words:
                 self._run_block(self.words[name])
             else:
-                raise KapilaError(f"Unknown word: {name}")
+                raise self._unknown_word(name)
 
         elif token.type == TokenType.PLUS:
             b, a = self.pop(), self.pop()
@@ -752,6 +863,11 @@ class VM:
         elif token.type == TokenType.NEQ:
             b, a = self.pop(), self.pop()
             self.push(a != b)
+
+        elif isinstance(token.value, str) and token.value in self.builtins:
+            # See _expression_and_actions: reserved vocabulary can still act
+            # as a normal postfix operation inside quotations.
+            self.builtins[token.value](self)
 
     def execute_quotation(self, block):
         """Public method for builtins to execute blocks."""
